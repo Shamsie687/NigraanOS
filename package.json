@@ -1,0 +1,29 @@
+{
+  "name": "nigraanos",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "node --test tests/*.test.js",
+    "test:ai": "node tests/nigraan-ai-migration-check.mjs && node tests/nigraan-ai-render-check.mjs",
+    "test:city-context": "node tests/city-context-migration-check.mjs && node tests/city-context-render-check.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.1"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4"
+  }
+}

@@ -1,0 +1,9 @@
+import {useState} from 'react';
+import {displayStatus,reportCategories} from '../data/reportOptions';
+import {nextIncidentStatus} from '../utils/workspaceAccess';
+import {updateIncidentStatus} from '../services/operations';
+export default function IncidentInspector({incident,onClose,onUpdated,onFullDetails}){
+  const [busy,setBusy]=useState(false),[error,setError]=useState('');const next=nextIncidentStatus(incident.status);
+  async function advance(){setBusy(true);setError('');try{await updateIncidentStatus(incident);await onUpdated();}catch(cause){setError(cause.message);}finally{setBusy(false);}}
+  return <section className="panel command-inspector" aria-label="Selected incident"><div className="panel-header"><h3>Selected incident</h3><button disabled={busy} className="text-button" onClick={onClose}>Close</button></div><div className="command-inspector-body"><h4>{incident.title}</h4><p>{reportCategories.find(c=>c.id===incident.category)?.label||incident.category} · {incident.area||'Area not labeled'}</p><p><span className="status-pill">{displayStatus(incident.status)}</span> · Recorded priority: {displayStatus(incident.priority)}</p>{error&&<p className="error" role="alert">{error}</p>}{next?<button disabled={busy} className="primary" onClick={advance}>{busy?'Updating…':next==='assigned'?'Assign to my Operations profile':'Mark '+displayStatus(next)}</button>:<p className="muted">{incident.status==='resolved'?'Resolved · Read-only':'No supported next workflow step.'}</p>}{next==='assigned'&&<small>Records your Operations profile; does not select a team, dispatch responders or establish exclusive ownership.</small>}<button className="secondary" disabled={busy} onClick={onFullDetails}>View full details</button></div></section>;
+}

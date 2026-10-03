@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'vite';
+import {renderToString} from 'react-dom/server';
+import React from 'react';
+import {readFile} from 'node:fs/promises';
+const server=await createServer({server:{middlewareMode:true},appType:'custom'});
+try {
+  const {NigraanAiView}=await server.ssrLoadModule('/src/components/NigraanAiPanel.jsx');
+  const snapshot={snapshotAt:'2026-10-02T00:00:00Z',scope:{mode:'briefing',category:'all',activityHours:24},facts:{matchingCount:12,unresolvedCount:11,oldestUnresolvedSeconds:864000,recentUpdateCount:1,recentEditCount:0,categories:{water:12},statuses:{reported:11,resolved:1}},incidents:[{id:'real-id',alias:'I1',title:'Stored title <script>injection</script>',category:'water',status:'reported',priority:'normal',age_seconds:864000}],activity:[],includedCount:1,omittedCount:11,includedActivityCount:0,omittedActivityCount:1};
+  const answer={interpretation:[{text:'Human review is appropriate.',refs:['I1']}],suggestions:[{text:'Review the supporting report.',refs:['I1']}],limitations:'Metadata only.'};
+  const render=result=>renderToString(React.createElement(NigraanAiView,{result,loading:false,onGenerate:()=>{},onSelect:()=>{}})).replaceAll('<!-- -->','');
+  const html=render({snapshot,answer});
+  for(const text of ['Facts from NigraanOS','AI Interpretation','Suggested Next Steps','Supporting Incidents','I1','View Incident','12 matching incidents','11 incident details omitted','Snapshot:','Recorded priority','since reported','Metadata only.','600'])assert.ok(html.includes(text),text);
+  assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>injection'));
+  for(const [label,value] of [['Matching incidents',12],['Unresolved',11],['Recent Citizen updates',1],['Recent Citizen edits',0]])assert.ok(html.includes('<span>'+label+'</span><strong>'+value+'</strong>'),label);
+  assert.ok(html.includes('Oldest unresolved · since reported</span><strong>10 days'));
+  const partial=render({snapshot,answer,answer_validation:{status:'partial'}});
+  assert.ok(partial.includes('Some AI-generated statements were omitted'));assert.ok(partial.includes('Human review is appropriate.'));assert.ok(!partial.includes('role="alert"'));
+  const filtered=render({snapshot,answer:{...answer,interpretation:[],suggestions:[]},answer_validation:{status:'partial'}});
+  assert.ok(filtered.includes('No validated AI interpretation is available for this snapshot.'));assert.ok(filtered.includes('Facts from NigraanOS'));assert.ok(filtered.includes('Supporting Incidents'));assert.ok(!filtered.includes('role="alert"'));
+  const retained=render({snapshot,answer:{...answer,interpretation:[{text:'Retained safe prose.',refs:[]}],suggestions:[]},answer_validation:{status:'partial'}});
+  assert.ok(!retained.includes('ai-citation'));assert.ok(retained.includes('View Incident'));
+  const failure=render({snapshot,answer:null,error:{code:'provider_rate_limited',message:'The AI provider is busy.',retryAfter:60}});
+  assert.ok(failure.includes('Facts from NigraanOS'));assert.ok(failure.includes('AI briefing unavailable'));assert.ok(!failure.includes('<h3>AI Interpretation'));
+  const denied=render({snapshot:null,answer:null,error:{code:'access',message:'Access changed.'}});assert.ok(!denied.includes('Stored title'));
+  const sidebar=(await server.ssrLoadModule('/src/components/Sidebar.jsx')).default;
+  assert.ok(renderToString(React.createElement(sidebar,{active:'Nigraan AI'})).includes('Nigraan AI'));
+  const page=await readFile(new URL('../src/pages/OperationsPage.jsx',import.meta.url),'utf8');
+  assert.match(page,/loadAiIncident\(requireSupabase\(\),id\)/);assert.match(page,/<IncidentDetail/);assert.ok(!page.includes('AiCopilot'));assert.match(page,/Open Nigraan AI/);
+  const hook=await readFile(new URL('../src/hooks/useNigraanAi.js',import.meta.url),'utf8');assert.match(hook,/controller\.current\?\.abort\(\)/);assert.match(hook,/alive\.current=false/);
+  const css=await readFile(new URL('../src/index.css',import.meta.url),'utf8');assert.match(css,/@media\(max-width:640px\)/);assert.match(css,/\.ai-filter-row,\.ai-supporting \{ grid-template-columns:1fr/);
+  console.log('AI render passed: facts/interpretation separation, failure facts, access exclusion, safe stored titles, citations/detail wiring, navigation, lifecycle and responsive CSS.');
+} finally {await server.close();}

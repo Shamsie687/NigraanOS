@@ -1,0 +1,14 @@
+project_id = "nigraanos"
+
+[functions.transcribe-recording]
+# JWTs are verified by Auth getUser inside the handler before any service-role or
+# provider operation. This accepts current asymmetric Supabase signing keys too.
+verify_jwt = false
+
+[functions.nigraan-ai]
+# Current JWT signing keys are verified through Auth getUser in this handler.
+verify_jwt = false
+
+[functions.city-context]
+# Auth getUser and Operations approval are checked inside the handler.
+verify_jwt = false

@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+const {chromium}=await import(pathToFileURL(process.argv[2]).href);
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1366,height:768}}),errors=[],ai=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/functions/v1/nigraan-ai'))ai.push(r.url());});
+ await page.route('**/tile.openstreetmap.org/**',r=>r.abort());
+ await page.goto('http://127.0.0.1:5182/');await page.locator('.nav-menu').getByRole('button',{name:'Urgent Operations',exact:false}).click();await page.waitForFunction(()=>document.querySelectorAll('.urgent-cards strong')[3]?.textContent==='1');
+ assert.equal(await page.locator('.urgent-cards section').count(),4);assert.ok(await page.locator('.urgent-queue article').count()>0);await page.getByRole('button',{name:'Fit attention incidents',exact:true}).click();assert.equal(await page.locator('.leaflet-marker-icon').count(),2);
+ await page.locator('.urgent-queue').getByRole('button',{name:'View Incident',exact:true}).first().click();await page.locator('.urgent-selected .command-inspector').waitFor();assert.ok(await page.locator('.attention-selected').count()===1);
+ assert.ok((await page.locator('.urgent-grid').boundingBox()).y<600,'laptop map/queue starts above fold');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'review/urgent-laptop.png',fullPage:true});
+ await page.locator('.urgent-filters').getByLabel('Category', {exact:true}).selectOption('traffic');assert.equal(await page.locator('.urgent-queue article').count(),0);assert.ok((await page.locator('.urgent-queue').innerText()).includes('No attention candidates match'));await page.locator('.urgent-filters').getByLabel('Category', {exact:true}).selectOption('all');
+ await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'390px overflow');await page.screenshot({path:'review/urgent-mobile.png',fullPage:true});
+ await page.evaluate(async()=>{const {rows}=await import('/tests/command-browser/client.js');rows[0].status='acknowledged';});await page.locator('.command-inspector').getByRole('button',{name:'Mark Acknowledged',exact:true}).click();await page.locator('.command-inspector .error').waitFor();assert.ok((await page.locator('.command-inspector .error').innerText()).includes('Stale'));
+ await page.evaluate(async()=>{const {rows}=await import('/tests/command-browser/client.js');rows[0].status='reported';});await page.getByRole('button',{name:'Refresh incidents',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.urgent-cards strong')[3]?.textContent==='1');
+ for(const label of ['Mark Acknowledged','Assign to my Operations profile','Mark In progress','Mark Resolved']){await page.locator('.command-inspector').getByRole('button',{name:label,exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.urgent-cards strong')[3]?.textContent!=='Loading');}
+ await page.waitForFunction(()=>!document.querySelector('.urgent-selected'));assert.ok((await page.locator('.urgent-operations').innerText()).includes('workflow completed'));
+ await page.evaluate(()=>window.analyticsFixtureFailure=true);await page.getByRole('button',{name:'Refresh incidents',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.urgent-cards strong')[3]?.textContent==='Unavailable');assert.ok(await page.locator('.urgent-queue article').count()>0);await page.screenshot({path:'review/urgent-activity-unavailable.png',fullPage:true});
+ await page.evaluate(async()=>{window.analyticsFixtureFailure=false;const {rows}=await import('/tests/command-browser/client.js');rows.forEach(r=>r.status='resolved');});await page.getByRole('button',{name:'Refresh incidents',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.urgent-cards strong')[3]?.textContent==='0');assert.ok((await page.locator('.urgent-queue').innerText()).includes('No incidents currently meet'));
+ await page.getByRole('button',{name:'Open Nigraan AI',exact:true}).click();await page.locator('.nigraan-ai').waitFor();assert.equal(ai.length,0);
+ await page.locator('.nav-menu').getByRole('button',{name:'Settings',exact:false}).click();assert.equal(await page.getByRole('button',{name:/Emergency demonstration/}).count(),0);assert.deepEqual(errors,[]);
+ console.log('Urgent browser passed: navigation, candidate cards, map fit, selection, shared category filtering, activity failure, no automatic AI, retired toggle, 1366x768 and 390px no overflow.');
+}finally{await browser.close();}
+
