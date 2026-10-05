@@ -7,3 +7,4 @@ review/
 *.log
 /assets/
 supabase/.temp/
+.aws-sam/

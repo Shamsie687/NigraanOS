@@ -1174,3 +1174,20 @@ fieldset{border:0;min-width:0}
 .urgent-selected,.urgent-activity{margin:14px 0;padding:14px;min-width:0;overflow-wrap:anywhere}
 .urgent-operations button{min-height:36px}.urgent-operations .city-environment{margin-top:16px}
 @media(max-width:800px){.urgent-grid{grid-template-columns:minmax(0,1fr)}.urgent-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.urgent-queue{max-height:none}.urgent-filters label{width:100%}.urgent-links>*{max-width:100%;overflow-wrap:anywhere}.urgent-grid .incident-map-frame{height:300px}}
+
+/* Amazon milestone 1: bounded read-tool interaction, existing visual system. */
+.agent-page{gap:14px;padding-top:14px}.agent-page .page-heading h2{margin:6px 0}.agent-page .page-heading p{margin:0}
+.agent-disclosure{font-size:12px;color:var(--text-muted);margin:0;max-width:900px}
+.agent-workspace{display:grid;grid-template-columns:minmax(220px,0.8fr) minmax(0,2fr);gap:16px;align-items:start}
+.agent-workspace>*{min-width:0}.agent-guide{padding:18px}.agent-guide h3{margin-top:0}.agent-guide p{font-size:12px;line-height:1.6}.agent-guide>.text-button{display:block;min-height:36px}
+.agent-prompts{display:flex;flex-direction:column;gap:8px}.agent-prompts button{text-align:left;font-size:12px;white-space:normal}
+.agent-conversation{overflow:hidden}.agent-thread{padding:18px;max-height:65vh;min-height:280px;overflow:auto;overscroll-behavior:contain}
+.agent-empty{text-align:center;padding:30px 12px;color:var(--text-muted)}.agent-orbit{font-size:44px;color:#63d4d1}.agent-empty p{font-size:13px;line-height:1.7}
+.agent-message{padding:14px;margin-bottom:14px;border:1px solid #314455;border-radius:9px;overflow-wrap:anywhere}.agent-message p{font-size:13px;line-height:1.6}.agent-message-operator{margin-left:12%;background:#152e37}.agent-message-error{border-color:#935451}
+.agent-tool{font-size:11px!important;color:#83c8c4}.agent-kind{display:inline-block;font-size:10px;letter-spacing:1px;padding:4px 7px;border:1px solid #487a76;border-radius:5px}.agent-kind-context{border-color:#a28848}.agent-result h3{font-size:16px;margin:8px 0}.agent-result small{font-size:11px;color:var(--text-muted)}
+.agent-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.agent-facts>div{padding:10px;background:#101d29;border-radius:5px}.agent-facts dt{font-size:11px}.agent-facts dd{margin:4px 0 0;font-size:22px}
+.agent-incidents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.agent-incidents article{padding:12px;background:#101d29;border:1px solid #293a49;border-radius:6px;min-width:0}.agent-incidents h4{margin:0}.agent-incidents p{margin:7px 0;font-size:12px}.agent-incidents .attention-reasons{margin:8px 0}.agent-card-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}.agent-card-actions button{font-size:11px;min-height:36px}
+.agent-caveat{font-size:11px!important;color:#c6c09d}.agent-activity{padding-left:18px;font-size:12px;line-height:1.8}.agent-context article{padding:10px 0;border-bottom:1px solid #293a49}.agent-context h4{margin:4px 0}
+.agent-input{padding:14px 18px;border-top:1px solid #314455}.agent-input label{margin:0 0 7px}.agent-input textarea{width:100%;resize:vertical;min-height:70px}.agent-input>div{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:8px}.agent-input small{font-size:10px;max-width:380px;color:var(--text-muted)}.agent-input button{min-height:40px;flex-shrink:0}
+@media(max-width:800px){.agent-workspace{grid-template-columns:minmax(0,1fr)}.agent-guide .agent-prompts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.agent-thread{max-height:70vh}.agent-page .page-heading{flex-wrap:wrap}}
+@media(max-width:480px){.agent-incidents{grid-template-columns:minmax(0,1fr)}.agent-input>div{align-items:stretch;flex-direction:column}.agent-guide .agent-prompts{grid-template-columns:minmax(0,1fr)}.agent-message-operator{margin-left:5%}.agent-thread{padding:10px}.agent-facts dd{font-size:20px}.agent-input{padding:12px}.agent-page button{max-width:100%;white-space:normal}.agent-page p,.agent-page small{overflow-wrap:anywhere}}

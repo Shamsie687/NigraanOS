@@ -1,0 +1,247 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "NigraanOS Amazon V2 Milestone 2C staging MCP (not deployed)",
+  "Parameters": {
+    "ReservedConcurrency": {
+      "Type": "Number",
+      "Default": 0,
+      "AllowedValues": [0, 2],
+      "Description": "0 omits reservation for low-quota/new accounts; 2 only if account supports it"
+    },
+    "SupabaseUrl": {
+      "Type": "String",
+      "AllowedPattern": "https://[a-zA-Z0-9.-]+"
+    },
+    "SupabaseAnonKey": { "Type": "String", "NoEcho": true },
+    "ConsentUrl": {
+      "Type": "String",
+      "Default": "https://nigraanos.netlify.app/",
+      "AllowedPattern": "https://[^?#]+"
+    },
+    "ClientId": { "Type": "String", "Default": "nigraanos-alexa-simulator", "MinLength": 1, "MaxLength": 100 },
+    "ClientName": { "Type": "String", "Default": "NigraanOS Alexa+ Simulator", "MinLength": 1, "MaxLength": 100 },
+    "RedirectUri": { "Type": "String", "Default": "https://nigraanos.netlify.app/agent-callback", "AllowedPattern": "https://[^?#]+" }
+  },
+  "Conditions": {
+    "ReserveRuntime": {
+      "Fn::Not": [{ "Fn::Equals": [{ "Ref": "ReservedConcurrency" }, 0] }]
+    }
+  },
+  "Resources": {
+    "StateTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          { "AttributeName": "pk", "AttributeType": "S" }
+        ],
+        "KeySchema": [{ "AttributeName": "pk", "KeyType": "HASH" }],
+        "TimeToLiveSpecification": { "AttributeName": "ttl", "Enabled": true },
+        "SSESpecification": { "SSEEnabled": true }
+      }
+    },
+    "CredentialKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Short-lived delegated upstream credentials only",
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AccountIAMDelegation",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "CredentialAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": { "Fn::Sub": "alias/${AWS::StackName}-credentials" },
+        "TargetKeyId": { "Ref": "CredentialKey" }
+      }
+    },
+    "RuntimeLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": { "Fn::Sub": "/aws/lambda/${AWS::StackName}-runtime" },
+        "RetentionInDays": 7
+      }
+    },
+    "RuntimeRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "McpMinimalState",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem"
+                  ],
+                  "Resource": { "Fn::GetAtt": ["StateTable", "Arn"] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["kms:Encrypt", "kms:Decrypt"],
+                  "Resource": { "Fn::GetAtt": ["CredentialKey", "Arn"] },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:EncryptionContext:application": "nigraan-mcp"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                  "Resource": { "Fn::GetAtt": ["RuntimeLogs", "Arn"] }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": { "Fn::Sub": "${AWS::StackName}-http" },
+        "ProtocolType": "HTTP"
+      }
+    },
+    "McpFunction": {
+      "Type": "AWS::Serverless::Function",
+      "DependsOn": "RuntimeLogs",
+      "Properties": {
+        "FunctionName": { "Fn::Sub": "${AWS::StackName}-runtime" },
+        "Runtime": "nodejs24.x",
+        "Architectures": ["arm64"],
+        "MemorySize": 256,
+        "Timeout": 20,
+        "ReservedConcurrentExecutions": {
+          "Fn::If": ["ReserveRuntime", 2, { "Ref": "AWS::NoValue" }]
+        },
+        "CodeUri": "../../server/mcp/",
+        "Handler": "dist/server/mcp/src/lambda.handler",
+        "Role": { "Fn::GetAtt": ["RuntimeRole", "Arn"] },
+        "Environment": {
+          "Variables": {
+            "SUPABASE_URL": { "Ref": "SupabaseUrl" },
+            "SUPABASE_ANON_KEY": { "Ref": "SupabaseAnonKey" },
+            "MCP_STATE_TABLE": { "Ref": "StateTable" },
+            "MCP_KMS_KEY_ID": { "Fn::GetAtt": ["CredentialKey", "Arn"] },
+            "MCP_API_ID": { "Ref": "HttpApi" },
+            "MCP_CONSENT_URL": { "Ref": "ConsentUrl" },
+            "MCP_CLIENT_ID": { "Ref": "ClientId" },
+            "MCP_CLIENT_NAME": { "Ref": "ClientName" },
+            "MCP_REDIRECT_URI": { "Ref": "RedirectUri" }
+          }
+        }
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": { "Ref": "HttpApi" },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": { "Fn::GetAtt": ["McpFunction", "Arn"] },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 20000
+      }
+    },
+    "DefaultRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": { "Ref": "HttpApi" },
+        "RouteKey": "$default",
+        "Target": {
+          "Fn::Join": ["/", ["integrations", { "Ref": "Integration" }]]
+        }
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": { "Ref": "HttpApi" },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 5,
+          "ThrottlingRateLimit": 2
+        }
+      }
+    },
+    "InvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": { "Ref": "McpFunction" },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceAccount": { "Ref": "AWS::AccountId" },
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+        }
+      }
+    },
+    "RuntimeErrors": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "Namespace": "AWS/Lambda",
+        "MetricName": "Errors",
+        "Dimensions": [
+          { "Name": "FunctionName", "Value": { "Ref": "McpFunction" } }
+        ],
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching"
+      }
+    }
+  },
+  "Outputs": {
+    "McpOrigin": {
+      "Value": {
+        "Fn::Sub": "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+      }
+    },
+    "McpResource": {
+      "Value": {
+        "Fn::Sub": "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/mcp"
+      }
+    },
+    "StateTableName": { "Value": { "Ref": "StateTable" } },
+    "CredentialKeyId": { "Value": { "Ref": "CredentialKey" } }
+  }
+}

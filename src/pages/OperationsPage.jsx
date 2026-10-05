@@ -1,4 +1,4 @@
-import { useEffect,useRef,useState } from 'react';
+import { lazy,Suspense,useEffect,useRef,useState } from 'react';
 import EmergencyOperations from '../components/EmergencyOperations';
 import ReportFeed from '../components/ReportFeed';
 import useOperationalIncidents from '../hooks/useOperationalIncidents';
@@ -18,6 +18,8 @@ import useCityContext from '../hooks/useCityContext';
 import CommandSummary from '../components/CommandSummary';
 import CommandActivity from '../components/CommandActivity';
 import IncidentInspector from '../components/IncidentInspector';
+import {getSimulatorSession} from '../services/mcpSimulatorRuntime';
+const NigraanAgent=lazy(()=>import('../components/NigraanAgent'));
 export default function OperationsPage({
   session,
   operations,
@@ -26,7 +28,7 @@ export default function OperationsPage({
   onExit
 }) {
   const feed = useOperationalIncidents();
-  const [active, setActive] = useState('Dashboard');
+  const [active, setActive] = useState(()=>getSimulatorSession().snapshot().status==='connected'?'Nigraan Agent':'Dashboard');
   const environment=useCityContext(city.id,active==='Dashboard'||active==='Live Map'||active==='Urgent Operations');
   const [filter, setFilter] = useState('all');
   const [selectedId,setSelectedId]=useState(null);
@@ -73,7 +75,7 @@ export default function OperationsPage({
       {notice&&<p role="status">{notice}</p>}
       {selected&&<div ref={detailRef}><IncidentDetail key={selected.id} incident={selected} onClose={()=>{setAiSelected(null);setSelectedId(null);}} onUpdated={updated}/></div>}
       <NigraanAiPanel onSelect={selectAiIncident}/>
-    </main> : active === 'Urgent Operations' ? <EmergencyOperations key={session.userId} feed={feed} accountId={session.userId} environment={environment} selectedId={selectedId} onSelect={selectIncident} onClose={()=>setSelectedId(null)} onUpdated={updated} onNavigate={navigate}/> : active === 'Analytics' ? <OperationsAnalytics key={session.userId} feed={feed} accountId={session.userId} onSelect={id=>{navigate('Citizen Reports');selectIncident(id);}}/> : <main className={'dashboard operations-real-workspace'+(active==='Live Map'?' live-map-page':'')}>
+    </main> : active === 'Nigraan Agent' ? <Suspense fallback={<main className="dashboard" role="status">Loading Nigraan Agent…</main>}><NigraanAgent key={session.userId} accountId={session.userId} onView={navigate} onIncident={id=>{navigate('Citizen Reports');selectIncident(id);}}/></Suspense> : active === 'Urgent Operations' ? <EmergencyOperations key={session.userId} feed={feed} accountId={session.userId} environment={environment} selectedId={selectedId} onSelect={selectIncident} onClose={()=>setSelectedId(null)} onUpdated={updated} onNavigate={navigate}/> : active === 'Analytics' ? <OperationsAnalytics key={session.userId} feed={feed} accountId={session.userId} onSelect={id=>{navigate('Citizen Reports');selectIncident(id);}}/> : <main className={'dashboard operations-real-workspace'+(active==='Live Map'?' live-map-page':'')}>
       <div className="page-heading">
         <h2>{active==='Dashboard'?'Command Center':active==='Citizen Reports'?'Incidents':active==='Flood Risk'?'Flood reports':active==='Road Conditions'?'Road damage reports':active==='Live Map'?'Live Map':active}</h2>
         <span className="demo-tag">Authorized incident feed</span>

@@ -1,6 +1,6 @@
 import Brand from './Brand';
 import {navigation} from '../data/mockData';
-const primary=[['Dashboard','◫','Command Center'],['Live Map','◎','Live Map'],['Citizen Reports','▧','Incidents'],['Urgent Operations','!','Urgent Operations'],['Analytics','▥','Analytics'],['Nigraan AI','✧','Nigraan AI'],['Settings','⚙','Settings']];
+const primary=[['Dashboard','◫','Command Center'],['Live Map','◎','Live Map'],['Citizen Reports','▧','Incidents'],['Urgent Operations','!','Urgent Operations'],['Analytics','▥','Analytics'],['Nigraan AI','✧','Nigraan AI'],['Nigraan Agent','◎','Nigraan Agent'],['Settings','⚙','Settings']];
 const reports=navigation.filter(item=>item[2]&&item[2]!=='citizen');
 export default function Sidebar({active,onNavigate,onExit}) {
   return <aside className="sidebar"><div className="sidebar-header"><Brand/></div>
