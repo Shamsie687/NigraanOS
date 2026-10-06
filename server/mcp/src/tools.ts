@@ -140,10 +140,20 @@ export async function runTool(
   }
   let result: unknown;
   if (name === "get_city_conditions") {
+    const context = projectAgentConditions(await caller.conditions(signal));
+    // Cached PostgreSQL timestamptz values may use offsets rather than Z.
+    // Projection already maps invalid/missing timestamps to null; preserve that.
+    for (const dataset of [context.weather, context.air]) {
+      for (const field of ["validAt", "fetchedAt"] as const) {
+        const value = dataset[field];
+        if (typeof value === "string" && Number.isFinite(Date.parse(value)))
+          dataset[field] = new Date(value).toISOString();
+      }
+    }
     result = {
       kind: "CONTEXT",
       collectedAt: base.collectedAt,
-      context: projectAgentConditions(await caller.conditions(signal)),
+      context,
     };
   } else if (name === "get_incident_details") {
     const row = await detail();
