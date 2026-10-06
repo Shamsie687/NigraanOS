@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { reportCategories } from '../data/reportOptions';
 import { createReport } from '../services/reports';
-import { validatePhoto } from '../utils/evidenceValidation';
+import { validateDecodedPhoto } from '../utils/evidenceValidation';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import useObjectUrl from '../hooks/useObjectUrl';
 import useTranscription from '../hooks/useTranscription';
 import VoiceTranscript from './VoiceTranscript';
+import PhotoCamera from './PhotoCamera';
 import {submissionTranscript} from '../utils/transcriptState.js';
 
 export default function IncidentForm({ userId, onSaved, onBusy }) {
   const [gps, setGps] = useState(null);
   const [locating, setLocating] = useState(false);
   const [photo, setPhoto] = useState(null);
+  const [cameraOpen,setCameraOpen]=useState(false);
   const [validating, setValidating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
@@ -37,25 +39,15 @@ export default function IncidentForm({ userId, onSaved, onBusy }) {
       setError(cause.code === 1 ? 'Location permission was denied. Allow location access and try again.' : 'Unable to attach GPS. Check your device location settings and try again.');
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
   }
-  async function choosePhoto(event, source) {
+  async function choosePhoto(event) {
     const file = event.target.files[0];
     event.target.value = '';
     if (!file) return;
     const version = ++photoVersion.current;
     setValidating(true); setError(''); setPhoto(null);
     try {
-      await validatePhoto(file);
-      // Check that browser can actually decode this image, not just its extension.
-      const url = URL.createObjectURL(file);
-      try {
-        await new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => image.naturalWidth && image.naturalHeight ? resolve() : reject(new Error('Image has no dimensions.'));
-          image.onerror = () => reject(new Error('Unable to decode this photo. Choose another image.'));
-          image.src = url;
-        });
-      } finally { URL.revokeObjectURL(url); }
-      if (alive.current && version === photoVersion.current) setPhoto({ file, source });
+      await validateDecodedPhoto(file);
+      if (alive.current && version === photoVersion.current) setPhoto({ file, source:'upload' });
     } catch (cause) {
       if (alive.current && version === photoVersion.current) setError(cause.message);
     } finally { if (alive.current && version === photoVersion.current) setValidating(false); }
@@ -94,16 +86,16 @@ export default function IncidentForm({ userId, onSaved, onBusy }) {
       <label>Location / area *<input name="area" required maxLength={200} placeholder="Area, street and nearest landmark" /></label>
       <div className="evidence-section"><h3>GPS location *</h3>
         <button type="button" className="secondary" disabled={locating} onClick={locate}>{locating ? 'Attaching GPS…' : 'Use my current location'}</button>
-        <p className={gps ? 'accent' : 'muted'} role="status">{gps ? 'Location attached · ' + gps.latitude.toFixed(5) + ', ' + gps.longitude.toFixed(5) + ' · accuracy ±' + Math.round(gps.accuracy) + ' m' : 'No GPS location attached. Browser location permission is required.'}</p>
+        <p className={gps ? 'accent' : 'muted'} role="status">{gps ? 'Location attached · ' + gps.latitude.toFixed(5) + ', ' + gps.longitude.toFixed(5) + ' · accuracy ±' + Math.round(gps.accuracy) + ' m. Location accuracy does not prove the photo location.' : 'No GPS location attached. Browser location permission is required.'}</p>
       </div>
       <div className="evidence-section"><h3>Photo evidence *</h3>
         <div className="evidence-actions">
-          <label className="file-action">Take Photo<input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={validating} onChange={event => choosePhoto(event, 'camera')} /></label>
-          <label className="file-action">Upload Photo<input type="file" accept="image/jpeg,image/png,image/webp" disabled={validating} onChange={event => choosePhoto(event, 'upload')} /></label>
+          <button type="button" className="secondary" disabled={validating} onClick={()=>setCameraOpen(true)}>Take Photo</button>
+          <label className="file-action">Upload Photo<input type="file" accept="image/jpeg,image/png,image/webp" disabled={validating} onChange={choosePhoto} /></label>
         </div>
-        <small className="muted">JPG, PNG or WebP · Up to 5 MB. Camera capture depends on your device/browser.</small>
+        <small className="muted">JPG, PNG or WebP · Up to 5 MB. Camera requires permission and an available device. Upload Photo is always an alternative.</small>
         {validating && <p role="status">Checking photo…</p>}
-        {photo && <div className="photo-preview"><img src={photoUrl || undefined} alt="Selected incident evidence" /><p className="accent">Photo attached · {photo.file.name}</p><button type="button" onClick={() => setPhoto(null)}>Remove photo</button></div>}
+        {photo && <div className="photo-preview"><img src={photoUrl || undefined} alt="Selected incident evidence" /><p className="accent">{photo.capturedInApp?'Captured in NigraanOS':'Uploaded photo'} · {photo.file.name}</p><button type="button" onClick={() => setPhoto(null)}>Remove photo</button></div>}
       </div>
       <div className="evidence-section voice-section"><h3>◉ Voice report <span className="muted">(optional)</span></h3>
         <p className="muted">Explain the problem in your own words. Up to 2 minutes / 10 MB.</p>
@@ -120,6 +112,7 @@ export default function IncidentForm({ userId, onSaved, onBusy }) {
       {!busy&&<p className="submission-help muted" role="status">{locating?'Wait for GPS attachment.':validating?'Wait for the photo check.':voice.recording||voice.starting?'Finish recording before submitting.':transcription.state.status==='loading'?'Wait for transcription or choose Keep audio without transcript.':!gps&&!photo?'Attach GPS and a photo to enable submission.':!gps?'Attach GPS to enable submission.':!photo?'Attach a photo to enable submission.':'Evidence ready. Complete the required report fields to submit.'}</p>}
       <button className="primary" type="submit" disabled={busy || locating || validating || !gps || !photo || voice.recording || voice.starting || transcription.state.status==='loading'}>{busy ? 'Saving incident…' : 'Submit incident →'}</button>
     </fieldset></form>
+    {cameraOpen&&<PhotoCamera onClose={()=>setCameraOpen(false)} onUse={value=>{photoVersion.current++;setPhoto(value);setError('');setCameraOpen(false);}}/>}
   </section>;
 }
 

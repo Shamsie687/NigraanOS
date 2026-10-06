@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {requireSupabase} from '../services/supabase';
 import CitizenActivity from './CitizenActivity';
+import ReportProgress from './ReportProgress';
 import CitizenChangeForm from './CitizenChangeForm';
 import {citizenAction} from '../utils/citizenChanges';
 import {displayStatus} from '../data/reportOptions';
@@ -13,6 +14,8 @@ export default function CitizenReportDetail({report,userId,onClose,onChanged,onB
   async function saved(){setMode(null);setSuccess('Your '+(mode==='edit'?'correction':'update')+' was saved.');await refresh();await onChanged();}
   const action=citizenAction(incident.status);const editAllowed=incident.status==='reported';const updateAllowed=['acknowledged','assigned','in_progress'].includes(incident.status);
   return <section className="citizen-panel"><div className="page-heading"><h2>{incident.title}</h2><button disabled={busy} onClick={onClose}>Close report</button></div><p><span className="status-pill">{displayStatus(incident.status)}</span> · {incident.area}</p>
+    <ReportProgress status={incident.status}/>
+    {Number.isFinite(incident.location_accuracy)&&<p className="muted">Location accuracy at report: approximately {Math.round(incident.location_accuracy)} m. This does not prove the photo location.</p>}
     {error&&<p className="error" role="alert">{error}</p>}{success&&<p className="success" role="status">{success}</p>}
     <button disabled={busy||Boolean(mode)} onClick={refresh}>Refresh report</button>
     {!mode&&action!=='View Details'&&<button className="primary" disabled={busy||Boolean(error)} onClick={()=>{setSuccess('');setMode(editAllowed?'edit':'update');}}>{action}</button>}

@@ -25,7 +25,10 @@ export default function ReportFeed({ feed,onSelect,citizen=false }) {
           {report.priority && ' · ' + displayStatus(report.priority) + ' priority'}
         </small>
         <p className="muted">GPS: {report.latitude}, {report.longitude}{report.location_accuracy!=null && ' · accuracy ±'+report.location_accuracy+' m'}</p>
-        {onSelect && <button className="secondary" onClick={()=>onSelect(report.id)}>{citizen?citizenAction(report.status):'View incident details'}</button>}
+        {onSelect && <div className="evidence-actions">
+          <button type="button" className="secondary" onClick={()=>onSelect(report.id)}>{citizen?'View Details':'View incident details'}</button>
+          {citizen&&citizenAction(report.status)!=='View Details'&&<button type="button" className="secondary" onClick={()=>onSelect(report.id)}>{citizenAction(report.status)}</button>}
+        </div>}
         <EvidenceViewer incidentId={report.id}/>
       </article>)}
     </div>

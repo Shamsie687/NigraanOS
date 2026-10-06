@@ -23,3 +23,16 @@ export async function validatePhoto(file) {
     throw new Error('The selected file is not a supported image.');
   }
 }
+
+export async function validateDecodedPhoto(file) {
+  await validatePhoto(file);
+  const url=URL.createObjectURL(file);
+  try {
+    await new Promise((resolve,reject)=>{
+      const image=new Image();
+      image.onload=()=>image.naturalWidth&&image.naturalHeight?resolve():reject(new Error('Image has no dimensions.'));
+      image.onerror=()=>reject(new Error('Unable to decode this photo. Choose another image.'));
+      image.src=url;
+    });
+  } finally { URL.revokeObjectURL(url); }
+}
