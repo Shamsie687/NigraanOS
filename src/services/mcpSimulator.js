@@ -14,6 +14,28 @@ const fail = (code, message) => {
 };
 const opaque = (value) =>
   typeof value === "string" && /^[A-Za-z0-9_-]{43}$/.test(value);
+const toolErrors = {
+  invalid_token: ['access', 'MCP authorization expired. Connect again.'],
+  access_denied: ['access', 'MCP authorization unavailable. Connect again.'],
+  stale_reference: ['stale_reference', 'Reference expired. Start a fresh investigation.'],
+  unknown_reference: ['stale_reference', 'Reference unavailable. Start a fresh investigation.'],
+  incident_unavailable: ['incident_unavailable', 'Incident read unavailable.'],
+  read_unavailable: ['read', 'Authorized read unavailable.'],
+  read_budget_exceeded: ['read_budget_exceeded', 'Read budget exceeded.'],
+  timeout: ['timeout', 'Read timed out.'],
+  rate_limited: ['rate_limited', 'Read limit reached. Retry later.'],
+  busy: ['busy', 'Another read is active. Retry later.'],
+};
+function safeToolError(response) {
+  try {
+    const text = response.content?.find(part => part.type === 'text')?.text;
+    if (typeof text === 'string' && text.length <= 2048) {
+      const code = JSON.parse(text)?.error?.code;
+      if (Object.hasOwn(toolErrors, code)) return new AgentError(...toolErrors[code]);
+    }
+  } catch { /* never surface raw response content */ }
+  return new AgentError('read', 'MCP read unavailable. Retry later or request a fresh incident list.');
+}
 const origins = [
   "https://nigraanos.netlify.app",
   "http://127.0.0.1:5173",
@@ -370,8 +392,10 @@ export function createSimulatorSession({
   }
   async function run(name, input = {}, signal) {
     validateToolInput(name, input);
-    if (!grant || grant.expiresAt <= now() || !connection)
-      fail("connection", "Connect read access before asking for MCP facts.");
+    if (!grant || grant.expiresAt <= now() || !connection) {
+      await disconnect();
+      fail("access", "Connect read access before asking for MCP facts.");
+    }
     const rev = revision;
     if (!MCP_TOOLS.includes(name)) fail("input", "Unsupported remote tool.");
     const args = input.ref
@@ -384,11 +408,7 @@ export function createSimulatorSession({
       const response = await connection.call(name, args, signal);
       if (rev !== revision || signal?.aborted)
         fail("cancelled", "Request cancelled.");
-      if (response.isError)
-        fail(
-          "read",
-          "MCP read unavailable. Retry later or request a fresh incident list.",
-        );
+      if (response.isError) throw safeToolError(response);
       const v = response.structuredContent;
       const result = projectRemoteResult(name, v);
       if (name !== "get_city_conditions" && !input.ref && v.context) {
@@ -404,7 +424,7 @@ export function createSimulatorSession({
       return result;
     } catch (e) {
       if (
-        e?.name === "UnauthorizedError" ||
+        e?.code === 'access' || e?.name === "UnauthorizedError" ||
         [e?.code, e?.status, e?.statusCode].some(
           (value) => value === 401 || value === 403,
         )
@@ -455,6 +475,15 @@ export function createSimulatorSession({
       return {
         clear: clearRefs,
         referenceVersion: () => referenceVersion,
+        assertSession() {
+          if (!grant || grant.expiresAt <= now() || !connection)
+            fail('access', 'MCP authorization expired. Connect again.');
+        },
+        assertReference(ref, version) {
+          if (!grant || grant.expiresAt <= now() || !connection)
+            fail('access', 'MCP authorization expired. Connect again.');
+          reference(ref, version);
+        },
         resolveOrdinal(index) {
           const ref = refs[index];
           reference(ref);

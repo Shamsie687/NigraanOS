@@ -33,6 +33,12 @@ test("simulator real SDK over HTTP: consent/PKCE, five tools, read/ref, revoke",
   const result=await session.run("get_city_status");assert.equal(result.facts.submitted,2);
   const detail=await session.run("get_incident_details",{ref:"I1"});assert.equal(detail.incidents[0].ref,"I1");
   for(const n of ["get_urgent_incidents","get_city_conditions","get_incident_activity"])await session.run(n);
+  const {createInvestigationController}=await import(pathToFileURL(resolve("../../src/services/incidentInvestigation.js")).href);
+  const investigation=await createInvestigationController({tools:session.facade(()=>{})}).run();
+  assert.equal(investigation.status,"complete");
+  assert.equal(investigation.coverage.inspected,2);
+  assert.equal(investigation.sources.length,7);
+  assert.ok(!JSON.stringify(investigation).includes("PRIVATE_"));
   assert.ok(!JSON.stringify(result).includes("PRIVATE_"));
   const bearer=wire.find(v=>v.url.endsWith("/mcp"))!.authorization;
   assert.ok(bearer.startsWith("Bearer "));assert.notEqual(bearer,"Bearer "+credential);

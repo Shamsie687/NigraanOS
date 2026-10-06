@@ -18,7 +18,7 @@ function fixture() {
   let time = Date.now(),
     exchangeFailed = false,
     connectFailed = false,
-    read;
+    read, readError;
   const map = new Map(),
     sent = [],
     calls = [];
@@ -51,6 +51,7 @@ function fixture() {
       return {
         async call(name, args) {
           calls.push({ name, args });
+          if(readError)return {isError:true,content:[{type:'text',text:JSON.stringify({error:{code:readError,message:'PRIVATE_PROVIDER_MESSAGE'}})}]};
           return {
             structuredContent: read || {
               kind: "FACT",
@@ -104,6 +105,7 @@ function fixture() {
     sent,
     calls,
     setRead: (v) => (read = v),
+    setReadError: v => (readError = v),
     advance: (v) => (time += v),
     exchangeFail: () => (exchangeFailed = true),
     connectFail: () => (connectFailed = true),
@@ -336,4 +338,21 @@ test("callback bootstrap scrubs code/state from history before app and never per
   assert.ok(
     html.indexOf("agent-callback-bootstrap.js") < html.indexOf("/src/main.jsx"),
   );
+});
+
+test('remote error classification retains only safe codes; access loss clears the session',async()=>{
+  for(const [remote,expected] of [['read_unavailable','read'],['rate_limited','rate_limited'],['busy','busy'],['timeout','timeout'],['stale_reference','stale_reference'],['unknown_reference','stale_reference'],['PRIVATE_CODE','read'],['invalid_token','access'],['access_denied','access']]){
+    const f=fixture(),u=await f.begin();await f.session.finish(f.callback(u),f.config,'account');f.setReadError(remote);
+    await assert.rejects(f.session.run('get_city_status'),e=>e.code===expected&&!e.message.includes('PRIVATE'));
+    if(expected==='access')assert.equal(f.session.snapshot().status,'disconnected');
+    await f.session.disconnect();
+  }
+});
+
+test('facade reference guard refuses context replacement, expiry and signout',async()=>{
+  const f=fixture(),u=await f.begin();await f.session.finish(f.callback(u),f.config,'account');
+  const tools=f.session.facade(()=>{});await tools.run('get_city_status');const version=tools.referenceVersion();tools.assertReference('I1',version);
+  await tools.run('get_city_status');assert.throws(()=>tools.assertReference('I1',version),e=>e.code==='stale_reference');
+  f.advance(300000);assert.throws(()=>tools.assertReference('I1',tools.referenceVersion()),e=>e.code==='stale_reference');
+  await f.session.accountChanged(undefined);assert.throws(()=>tools.assertReference('I1',tools.referenceVersion()),e=>e.code==='access');
 });
