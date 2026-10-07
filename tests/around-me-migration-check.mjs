@@ -1,0 +1,59 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+const db=new PGlite();let checks=0;
+const citizen='00000000-0000-4000-8000-000000000001',ops='00000000-0000-4000-8000-000000000002';
+const ok=value=>{assert.ok(value);checks++;};
+const sql=file=>readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');
+async function actor(id,role='authenticated'){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role '+role);}
+async function denied(query,args=[]){await assert.rejects(db.query(query,args));checks++;}
+async function read(row=8,column=10){return (await db.query('select nigraan_around_me($1,$2) as data',[row,column])).rows[0].data;}
+try{
+ const fixture=await readFile(new URL('./transcription-migration-check.mjs',import.meta.url),'utf8');const start=fixture.indexOf('await db.exec(`')+'await db.exec(`'.length,end=fixture.indexOf('`);',start);await db.exec(fixture.slice(start,end).replaceAll('${citizen}',citizen).replaceAll('${other}',ops));
+ for(const file of ['002_accounts_evidence_upgrade.sql','003_fix_incident_categories.sql','004_fix_evidence_constraints.sql','005_multi_workspace_access.sql','006_voice_transcription.sql','007_transcription_quota_tuning.sql','008_citizen_report_edits_updates.sql','012_citizen_accountability.sql','013_citizen_around_me.sql'])await db.exec(await sql(file));
+ const users=[citizen,ops];for(let i=0;i<48;i++){const id=crypto.randomUUID();users.push(id);await db.query('insert into auth.users(id) values($1)',[id]);await db.query("insert into profiles(id,display_name) values($1,'Synthetic') on conflict do nothing",[id]);}
+ await db.query("insert into operations_profiles(user_id,organization_name,organization_type,verification_status) values($1,'Synthetic','ngo','approved')",[ops]);
+ async function seed(n,{row=8,column=10,category='water',status='reported',single=false,submission='submitted',when='2 days',offset=0}={}){for(let i=0;i<n;i++)await db.query("insert into incidents(id,reporter_id,title,description,area,category,status,latitude,longitude,location_accuracy,submission_state,reported_at) values($1,$2,'PRIVATE TITLE','PRIVATE DESCRIPTION','PRIVATE AREA',$3,$4,$5,$6,17,$7,(statement_timestamp() at time zone 'Asia/Karachi')::date::timestamp at time zone 'Asia/Karachi' - $8::interval)",[crypto.randomUUID(),users[single?0:(i+offset)%users.length],category,status,24.705+row*0.02,66.805+column*0.02,submission,when]);}
+ await seed(1,{category:'traffic'});await seed(4,{category:'flood'});await seed(5);await seed(20,{category:'garbage',single:true});await seed(5,{category:'power',status:'assigned'});await seed(5,{category:'road_damage',status:'in_progress'});await seed(5,{category:'air_quality',status:'resolved'});await seed(5,{category:'other',status:'acknowledged'});
+ await seed(5,{row:9,column:11});await seed(5,{row:12,column:15});await seed(5,{category:'traffic',submission:'draft'});await seed(5,{category:'traffic',when:'31 days'});await seed(5,{category:'traffic',when:'-1 hour'});
+ await seed(10,{row:12,column:15,category:'flood'});await seed(20,{row:12,column:15,category:'garbage'});await seed(50,{row:12,column:15,category:'other'});
+ await seed(3,{row:9,column:11,category:'traffic',status:'assigned'});await seed(2,{row:9,column:11,category:'traffic',status:'in_progress',offset:3});await seed(4,{category:'water',status:'acknowledged'});
+ // Simulate legacy unsupported values in the isolated fixture only.
+ const statusChecks=(await db.query("select c.conname from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=any(c.conkey) where c.conrelid='incidents'::regclass and c.contype='c' and a.attname='status'")).rows;
+ for(const c of statusChecks)await db.exec('alter table incidents drop constraint "'+c.conname+'"');await seed(5,{category:'traffic',status:'unsupported'});
+ await actor('', 'anon');await denied('select nigraan_around_me(8,10)');await actor(citizen);
+ for(const name of ['nigraan_around_me_releases','nigraan_around_me_groups','nigraan_around_me_rate']){await denied('select * from '+name);await denied('delete from '+name);}
+ await denied('select nigraan_around_me_config()');
+ await denied('select nigraan_around_me_build()');await denied("select nigraan_around_me_grid(24.86,67)");await denied("select nigraan_around_me_state('reported')");
+ const data=await read();ok(data.reportingWindowDays===30);ok(data.cells.length===2);const groups=data.cells.find(c=>c.cellId==='K-8-10').groups;
+ ok(groups.length===5);ok(!groups.some(g=>['traffic','flood','garbage'].includes(g.category)));ok(groups.every(g=>g.reportCountBand==='5–9'));ok(groups.find(g=>g.category==='power').publicWorkflowState==='processing');ok(groups.find(g=>g.category==='road_damage').publicWorkflowState==='processing');ok(groups.find(g=>g.category==='air_quality').publicWorkflowState==='resolved');
+ assert.deepEqual(Object.keys(data).sort(),['cells','reportingWindowDays','snapshotDay']);checks++;
+ for(const cell of data.cells){assert.deepEqual(Object.keys(cell).sort(),['cellId','generalizedBounds','generalizedCenter','groups']);checks++;for(const group of cell.groups){assert.deepEqual(Object.keys(group).sort(),['category','publicWorkflowState','reportCountBand']);checks++;}}
+ const wire=JSON.stringify(data);for(const text of [...users,'PRIVATE','reporter','title','description','priority','assignment','transcript','evidence','storage','reported_at','updated_at','actor','author','location_accuracy','24.865'])ok(!wire.includes(text));
+ await actor(ops);assert.deepEqual(await read(),data);checks++;await actor(users[10]);assert.deepEqual(await read(),data);checks++;
+ const distant=await read(12,15);for(const [category,band] of [['water','5–9'],['flood','10–19'],['garbage','20–49'],['other','50+']])ok(distant.cells[0].groups.find(g=>g.category===category).reportCountBand===band);
+ ok(data.cells.find(c=>c.cellId==='K-9-11').groups.find(g=>g.category==='traffic').publicWorkflowState==='processing');ok(!groups.some(g=>g.category==='water'&&g.publicWorkflowState==='acknowledged'));
+ await actor(citizen);ok((await db.query('select id from incidents where reporter_id<>$1',[citizen])).rows.length===0);await denied('select nigraan_read_accountability($1)',[(await actor(ops), (await db.query('select id from incidents where reporter_id=$1 limit 1',[citizen])).rows[0].id)]);await actor(citizen);
+ for(const q of [[-1,10],[30,10],[8,40],[null,10]])await denied('select nigraan_around_me($1,$2)',q);
+ // Geometry and the published daily release do not change after canonical edits.
+ await db.exec('reset role');await db.exec("update incidents set latitude=latitude+0.001,longitude=longitude+0.001 where category='water'");await seed(5,{category:'traffic'});await actor(citizen);assert.deepEqual(await read(),data);checks++;
+ await db.exec('reset role');ok((await db.query("select public.nigraan_around_me_state('unsupported') as state")).rows[0].state===null);
+ for(const role of ['anon','authenticated'])for(const name of ['nigraan_around_me_releases','nigraan_around_me_groups','nigraan_around_me_rate'])ok(!(await db.query("select has_table_privilege($1,$2,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') as allowed",[role,'public.'+name])).rows[0].allowed);
+ for(const signature of ['nigraan_around_me_config()','nigraan_around_me_grid(double precision,double precision)','nigraan_around_me_state(text)','nigraan_around_me_build()'])for(const role of ['anon','authenticated'])ok(!(await db.query("select has_function_privilege($1,$2,'EXECUTE') as allowed",[role,'public.'+signature])).rows[0].allowed);
+ ok((await db.query("select count(*)::int as n from pg_class where relname in ('nigraan_around_me_releases','nigraan_around_me_groups','nigraan_around_me_rate') and relrowsecurity")).rows[0].n===3);
+ for(const [status,mapped] of [['reported','reported'],['acknowledged','acknowledged'],['assigned','processing'],['in_progress','processing'],['resolved','resolved']])ok((await db.query('select nigraan_around_me_state($1) as state',[status])).rows[0].state===mapped);
+ for(const point of [[NaN,67],[Infinity,67],[24.7,181],[25.3,67]])await denied('select nigraan_around_me_grid($1,$2)',point);
+ // Fill a single account's rolling minute, then verify rejection and account isolation.
+ await db.query("update nigraan_around_me_rate set attempts=array_fill(clock_timestamp(),array[6]) where account_id=$1",[citizen]);await actor(citizen);await denied('select nigraan_around_me(8,10)');await actor(users[11]);ok((await read()).cells.length===2);
+ await db.exec('reset role');await db.query("update nigraan_around_me_rate set attempts=array_fill(clock_timestamp()-interval '2 minutes',array[100]) where account_id=$1",[citizen]);await actor(citizen);await denied('select nigraan_around_me(8,10)');await db.exec('reset role');await db.query("update nigraan_around_me_rate set attempts=array_fill(clock_timestamp()-interval '25 hours',array[100]) where account_id=$1",[citizen]);await actor(citizen);ok((await read()).cells.length===2);
+ await db.exec('reset role');ok((await db.query('select cardinality(attempts) as n from nigraan_around_me_rate where account_id=$1',[citizen])).rows[0].n===1);
+ await actor(users[13]);for(let i=0;i<6;i++)await read();await denied('select nigraan_around_me(8,10)');await db.exec('reset role');ok((await db.query('select cardinality(attempts) as n from nigraan_around_me_rate where account_id=$1',[users[13]])).rows[0].n===6);
+ // Atomic failure after group insertion must leave neither metadata nor groups.
+ await db.exec('delete from nigraan_around_me_groups; delete from nigraan_around_me_releases');await db.exec("create function public.synthetic_release_failure() returns trigger language plpgsql as $$ begin if new.state='published' then raise exception 'Synthetic failure'; end if; return new; end $$;create trigger synthetic_failure before update on nigraan_around_me_releases for each row execute function synthetic_release_failure();");await actor(citizen);await denied('select nigraan_around_me(8,10)');await db.exec('reset role');ok((await db.query('select count(*)::int as n from nigraan_around_me_releases')).rows[0].n===0);ok((await db.query('select count(*)::int as n from nigraan_around_me_groups')).rows[0].n===0);await db.exec('drop trigger synthetic_failure on nigraan_around_me_releases');
+ const builder=(await db.query("select prosrc from pg_proc where oid='nigraan_around_me_build()'::regprocedure")).rows[0].prosrc;ok(builder.includes('pg_try_advisory_xact_lock'));ok(!builder.includes('avg('));
+ // Inject lock contention in this isolated function to exercise fail-closed admission.
+ await db.exec("create or replace function public.nigraan_around_me_build() returns date language plpgsql security definer set search_path='' as $$"+builder.replace('not pg_catalog.pg_try_advisory_xact_lock(603013)','true')+'$$');await actor(users[12]);await denied('select nigraan_around_me(8,10)');await db.exec('reset role');ok((await db.query('select count(*)::int as n from nigraan_around_me_releases')).rows[0].n===0);
+ await db.exec("create or replace function public.nigraan_around_me_build() returns date language plpgsql security definer set search_path='' as $$"+builder+'$$');await actor(users[12]);const concurrent=await Promise.all([read(),read(),read()]);assert.deepEqual(concurrent[0],concurrent[1]);assert.deepEqual(concurrent[1],concurrent[2]);checks+=2;await db.exec('reset role');ok((await db.query('select count(*)::int as n from nigraan_around_me_releases')).rows[0].n===1);
+ await actor(citizen);const rebuilt=await read();ok(rebuilt.cells.length<=9);ok((await read(29,39)).cells.length===0);
+ console.log(`013 Around Me privacy/security: ${checks} checks passed.`);
+}finally{await db.close();}

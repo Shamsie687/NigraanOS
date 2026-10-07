@@ -1217,3 +1217,11 @@ fieldset{border:0;min-width:0}
 .investigation-progress{padding:12px;border-left:3px solid #63d4d1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.investigation-progress p{font-size:12px;margin:0}
 .agent-page .investigation-briefing button,.investigation-progress button{min-height:40px;white-space:normal;max-width:100%}
 @media(max-width:600px){.investigation-cards,.investigation-context-grid{grid-template-columns:minmax(0,1fr)}.investigation-candidate,.investigation-modeled{padding:12px}.investigation-header h3{font-size:16px}.investigation-briefing{gap:14px}.agent-page .investigation-briefing button,.investigation-progress button{min-height:44px}}
+/* Around Me uses generalized cells, separate from the Operations map. */
+.around-me-map .leaflet-container { height: 380px; width: 100%; border-radius: 12px; }
+.around-me-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.around-me-controls label { display: grid; gap: 6px; }
+.around-me-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 12px; margin-top: 16px; }
+.around-me-cards article { padding: 14px; border: 1px solid var(--border, #263445); border-radius: 12px; overflow-wrap: anywhere; }
+.around-me-cards article.selected { border-color: #228be6; }
+@media(max-width: 600px) { .around-me-map .leaflet-container { height: 300px; } .around-me-controls select { max-width: 100%; } .around-me-controls label { width: 100%; } }

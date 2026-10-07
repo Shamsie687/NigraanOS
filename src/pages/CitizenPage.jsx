@@ -7,6 +7,7 @@ import {city, alerts} from '../data/mockData';
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher';
 import OperationsApplication from '../components/OperationsApplication';
 import CitizenReportDetail from '../components/CitizenReportDetail';
+import CitizenAroundMe from '../components/CitizenAroundMe';
 
 export default function CitizenPage({session,operations,onSwitch,onRefreshAccess,operationsRequested,onExit}) {
   const [tab,setTab]=useState('home');
@@ -29,11 +30,11 @@ export default function CitizenPage({session,operations,onSwitch,onRefreshAccess
       <h1>Hello, {session.name}.</h1>
       <p className="muted">Help teams see what happened, where it happened, and the evidence.</p>
       <nav className="citizen-actions">
-        {[['report','+','Report an incident'],['reports','▧','My reports']].map(([id,icon,label])=><button key={id} disabled={busy} className={(id==='report'?'citizen-report-primary ':'')+(tab===id?'selected':'')} onClick={()=>{setTab(id);setSuccess('')}}><span>{icon}</span>{label} →</button>)}
+        {[['report','+','Report an incident'],['reports','▧','My reports'],['around','◎','Around Me']].map(([id,icon,label])=><button key={id} disabled={busy} className={(id==='report'?'citizen-report-primary ':'')+(tab===id?'selected':'')} onClick={()=>{setTab(id);setSuccess('')}}><span>{icon}</span>{label} →</button>)}
       </nav>
       <button className="secondary" disabled={busy} onClick={()=>setTab('account')}>{operations?'Operations access':'Apply for Operations Access'}</button>
       {success&&<div className="success submission-success" role="status"><strong>Report submitted</strong><p>Your incident and evidence were saved.</p><p className="report-reference">Reference: {success}</p><p>Status: {feed.reports.find(report=>report.id===success)?.status?.replaceAll('_',' ')||'Refreshing report status…'}</p><button disabled={busy||!feed.reports.some(report=>report.id===success)} onClick={()=>setSelected(feed.reports.find(report=>report.id===success))}>View report →</button></div>}
-      {tab==='account'?<OperationsApplication operations={operations} onRefresh={onRefreshAccess}/>:tab==='report'?<IncidentForm userId={session.userId} onSaved={saved} onBusy={setBusy}/>:tab==='alerts'?<section className="citizen-panel">
+      {tab==='around'?<CitizenAroundMe userId={session.userId}/>:tab==='account'?<OperationsApplication operations={operations} onRefresh={onRefreshAccess}/>:tab==='report'?<IncidentForm userId={session.userId} onSaved={saved} onBusy={setBusy}/>:tab==='alerts'?<section className="citizen-panel">
         <h2>City alerts</h2><p className="muted">Demonstration advisories, not live safety information.</p>
         {alerts.map(a=><article className="alert-card" key={a.title}><span className="status-pill">{a.severity} · Demo</span><h3>{a.title}</h3><p>{a.detail}</p></article>)}
       </section>:<section className="citizen-panel">
