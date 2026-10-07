@@ -33,14 +33,30 @@ try {
   const resolved=renderToString(React.createElement(CitizenReportDetail,{report:{...sample,status:'resolved'},userId:'test'}));
   if(!resolved.includes('Completed · Read-only')||resolved.includes('>Edit Report<')||resolved.includes('>Add Update<'))throw new Error('Resolved report not read-only');
   const form=renderToString(React.createElement(IncidentForm,{userId:'test',onSaved:()=>{},onBusy:()=>{}}));
-  for(const label of ['Use my current location','Take Photo','Upload Photo','Optional transcription becomes available','capture="environment"']){
+  for(const label of ['Use my current location','Take Photo','Upload Photo','Optional transcription becomes available']){
     if(!form.includes(label))throw new Error('Incident form missing '+label);
   }
+  const formSource=await readFile('src/components/IncidentForm.jsx','utf8');
+  if(!/onClick=\{\(\)=>setCameraOpen\(true\)\}>Take Photo/.test(formSource)
+    || !/cameraOpen&&<PhotoCamera\s+onClose=/.test(formSource)
+    || !/onUse=\{value=>\{[^}]*setPhoto\(value\)[^}]*setCameraOpen\(false\)/.test(formSource))
+    throw new Error('Take Photo must open the dedicated camera and accept its captured photo');
+  if((form.match(/type="file"/g)||[]).length!==1
+    || !/<label class="file-action">Upload Photo<input type="file" accept="image\/jpeg,image\/png,image\/webp"/.test(form)
+    || /\bcapture=/.test(form))throw new Error('Upload Photo must remain a separate ordinary file picker');
+  const {default:PhotoCamera}=await server.ssrLoadModule('/src/components/PhotoCamera.jsx');
+  const camera=renderToString(React.createElement(PhotoCamera,{onUse:()=>{},onClose:()=>{}}));
+  if(!camera.includes('role="dialog"')||!camera.includes('Enable camera')||camera.includes('<video'))
+    throw new Error('Camera must require explicit enablement before live preview');
+  const cameraSource=await readFile('src/components/PhotoCamera.jsx','utf8');
+  if(!/import\s*\{\s*createPhotoCamera,\s*captureVideoFrame\s*\}\s*from\s*["']\.\.\/services\/photoCamera/.test(cameraSource)
+    || !/getMedia:\s*navigator\.mediaDevices\?\.getUserMedia\?\.bind/.test(cameraSource))
+    throw new Error('Dedicated camera must use the getUserMedia camera service');
   if(!form.includes('disabled=""'))throw new Error('Submission must be disabled before GPS and photo');
   await mkdir('review',{recursive:true});
   const css=await readFile('src/index.css','utf8');
   await writeFile('review/incident-form.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>NigraanOS incident form preview</title><style>'+css+'</style></head><body><main class="citizen-main"><p class="muted">Local form preview · no live account or permissions requested</p>'+form+'</main></body></html>');
   await writeFile('review/citizen-correction-preview.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NigraanOS correction layout preview</title><style>'+css+'</style></head><body><main class="citizen-main"><p class="verification-note">STATIC LOCAL LAYOUT PREVIEW · Synthetic report fields · No backend requests · Buttons are not interactive</p>'+edit+update+resolved+'</main></body></html>');
-  console.log('Entry and evidence form render; GPS/photo gating, camera input and optional server-side transcription labels verified.');
+  console.log('Entry and evidence form render; GPS/photo gating, dedicated camera, separate upload and optional server-side transcription verified.');
 }finally{await server.close();}
 

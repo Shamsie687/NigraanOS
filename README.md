@@ -11,7 +11,25 @@ license: mit
 ## Existing-schema upgrade
 
 The application now uses the existing `profiles`, `incidents`, and `evidence`
-tables. The prototype `reports` table is neither used nor changed.
+tables. The prototype `reports` table is unused; migration 011 removes its browser
+access while preserving its table, sequence and data.
+
+### Established production baseline
+
+`supabase/historical-bootstrap/001_initial_mvp.sql` is retained unchanged for
+provenance only. It was designed for a fresh Supabase project and does not
+describe the current production baseline. Never execute it against production.
+It is outside the active migration directory so the CLI cannot queue it.
+
+Production already had a profiles/incidents/evidence schema. Migrations 002–010
+are its verified upgrade chain. Their migration history is reconstructed from
+live final-state verification because the application migration ledger was
+absent; this does not prove the exact historical execution sequence. Official
+CLI history repair records only 002–010 without rerunning their SQL. Version 001
+is not recorded as applied. Do not rerun 002–010 against this production project.
+The active migrations require the established base schema and are not a complete
+bootstrap for an empty database. After reconciliation, only genuinely new
+migrations should appear pending; inspect a linked push dry-run before applying.
 
 002 is the baseline upgrade for the older schema. **If 002, 003 and 004 are already
 applied, run only `supabase/migrations/005_multi_workspace_access.sql` next.**
