@@ -4,6 +4,7 @@ import {city} from '../data/mockData';
 import {nextIncidentStatus} from '../utils/workspaceAccess';
 import {updateIncidentStatus} from '../services/operations';
 import CitizenActivity from './CitizenActivity';
+import OperationsPublicUpdate from './OperationsPublicUpdate';
 export default function IncidentDetail({incident,onClose,onUpdated}) {
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -19,7 +20,9 @@ export default function IncidentDetail({incident,onClose,onUpdated}) {
     <h2>{incident.title}</h2>
     <p>{reportCategories.find(category=>category.id===incident.category)?.label || incident.category} · {displayStatus(incident.status)} · Recorded priority: {displayStatus(incident.priority)}</p>
     {error && <p className="error" role="alert">{error}</p>}
-    {next?<div className="detail-primary-actions"><button className="primary" disabled={busy} onClick={advance}>{busy?'Updating…':next==='assigned'?'Assign to my Operations profile':'Mark '+displayStatus(next)}</button>{next==='assigned' && <p className="muted">Records your Operations profile; does not select a team, dispatch responders or establish exclusive ownership.</p>}</div>:<p className="muted">{incident.status==='resolved'?'This incident is resolved.':'This legacy status needs project-owner review before workflow updates.'}</p>}
+    {next&&next!=='resolved'?<div className="detail-primary-actions"><button className="primary" disabled={busy} onClick={advance}>{busy?'Updating…':next==='assigned'?'Assign to my Operations profile':'Mark '+displayStatus(next)}</button>{next==='assigned' && <p className="muted">Records your Operations profile; does not select a team, dispatch responders or establish exclusive ownership.</p>}</div>:next!=='resolved'&&<p className="muted">{incident.status==='resolved'?'This incident is resolved.':'This legacy status needs project-owner review before workflow updates.'}</p>}
+    {['acknowledged','assigned','in_progress'].includes(incident.status)&&<OperationsPublicUpdate key={incident.id+incident.status+'progress'} incident={incident} onUpdated={onUpdated}/>}
+    {next==='resolved'&&<OperationsPublicUpdate key={incident.id+'resolution'} incident={incident} onUpdated={onUpdated} resolution/>}
     <p className="incident-description">{incident.description}</p>
     <dl><dt>Area</dt><dd>{incident.area || 'Not labeled'}</dd>
       <dt>GPS coordinates</dt><dd>{incident.latitude}, {incident.longitude}{incident.location_accuracy!=null && ' · accuracy ±'+incident.location_accuracy+' m'}</dd>

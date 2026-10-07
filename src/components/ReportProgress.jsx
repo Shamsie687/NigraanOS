@@ -1,12 +1,11 @@
 import { reportProgress } from "../utils/reportProgress";
-export default function ReportProgress({ status }) {
+export default function ReportProgress({ status, events=[] }) {
   const steps = reportProgress(status);
   return (
     <section className="report-progress" aria-label="Report workflow progress">
       <h3>Report progress</h3>
       <p>
-        Progress shows the report's current workflow stage. Earlier transition
-        times are not recorded here.
+        {events.length?'Times shown are genuine recorded workflow observations. Missing times are unavailable.':"Progress shows the report's current workflow stage. Earlier transition times are not recorded here."}
       </p>
       {steps ? (
         <ol>
@@ -24,6 +23,7 @@ export default function ReportProgress({ status }) {
                     ? "Current stage"
                     : "Future stage"}
               </span>
+              {step.state!=='future'&&events.find(event=>event.status===step.status&&event.kind!=='assignment')&&<time dateTime={events.find(event=>event.status===step.status&&event.kind!=='assignment').recordedAt}>{new Date(events.find(event=>event.status===step.status&&event.kind!=='assignment').recordedAt).toLocaleString()}</time>}
             </li>
           ))}
         </ol>
