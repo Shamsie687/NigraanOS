@@ -1,4 +1,5 @@
 import { requireSupabase } from './supabase';
+import {loadOperationsAccess} from './judgeAccess';
 
 export async function signIn({ email, password }) {
   const { data, error } = await requireSupabase().auth.signInWithPassword({ email, password });
@@ -32,7 +33,8 @@ export async function loadAccount(userId) {
     .select('user_id, organization_name, organization_type, explanation, verification_status')
     .eq('user_id', userId).maybeSingle();
   if (result.error) throw new Error('Unable to load Operations access. Check migration 005 and your connection. ' + result.error.message);
-  return { profile, operations:result.data };
+  const access=await loadOperationsAccess(client);
+  return { profile, operations:result.data, access };
 }
 
 export async function signOut() {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { requireSupabase } from '../services/supabase';
 import { evidenceKind } from '../utils/evidenceFormat';
 import EvidenceTranscript from './EvidenceTranscript';
+import {loadOperationsAccess} from '../services/judgeAccess';
 
 export default function EvidenceViewer({ incidentId,initiallyOpen=false,changeId=null }) {
   const [open, setOpen] = useState(initiallyOpen);
@@ -11,6 +12,8 @@ export default function EvidenceViewer({ incidentId,initiallyOpen=false,changeId
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    const controller=new AbortController();
+    const objectUrls=[];
     setLoading(true); setError(''); setFiles([]);
     const client = requireSupabase();
     (async () => {
@@ -18,19 +21,27 @@ export default function EvidenceViewer({ incidentId,initiallyOpen=false,changeId
       if(changeId) evidenceQuery=evidenceQuery.eq('citizen_change_id',changeId);
       const evidence = await evidenceQuery.order('created_at', { ascending: true });
       if (evidence.error) throw evidence.error;
+      const access=await loadOperationsAccess(client);
       const resolved = await Promise.all(evidence.data.filter(file=>(file.citizen_change_id||null)===changeId).map(async file => {
+        if(access.allowed&&!access.permanent){
+          const result=await client.functions.invoke('judge-evidence',{body:{evidence_id:file.id},signal:controller.signal});
+          if(result.error||!(result.data instanceof Blob))return {...file,unavailable:true};
+          if(cancelled)return {...file,unavailable:true};
+          const url=URL.createObjectURL(new Blob([result.data],{type:file.mime_type}));objectUrls.push(url);
+          return {...file,url,unavailable:false};
+        }
         const result = await client.storage.from('incident-evidence').createSignedUrl(file.storage_path, 120);
         return { ...file, url: result.data?.signedUrl, unavailable: Boolean(result.error) };
       }));
       if (!cancelled) setFiles(resolved);
     })().catch(cause => { if (!cancelled) setError('Unable to load evidence: ' + cause.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true;controller.abort();for(const url of objectUrls)URL.revokeObjectURL(url); };
   }, [open, incidentId,changeId]);
   return <div className="evidence-viewer">
     <button onClick={() => setOpen(!open)} aria-expanded={open}>{open ? 'Hide evidence' : 'View evidence'}</button>
     {open && <div>
-      <small className="muted">Private previews expire after 2 minutes. Close and reopen to refresh.</small>
+      <small className="muted">Private previews may need reopening to refresh. Temporary Operations previews close when access ends.</small>
       {loading && <p role="status">Loading evidence…</p>}
       {error && <p role="alert" className="error">{error}</p>}
       {!loading && !error && !files.length && <p className="muted">No evidence attached to this legacy incident.</p>}

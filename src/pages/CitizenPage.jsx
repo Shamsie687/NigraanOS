@@ -8,8 +8,9 @@ import WorkspaceSwitcher from '../components/WorkspaceSwitcher';
 import OperationsApplication from '../components/OperationsApplication';
 import CitizenReportDetail from '../components/CitizenReportDetail';
 import CitizenAroundMe from '../components/CitizenAroundMe';
+import JudgeAccess from '../components/JudgeAccess';
 
-export default function CitizenPage({session,operations,onSwitch,onRefreshAccess,operationsRequested,onExit}) {
+export default function CitizenPage({session,operations,access,onSwitch,onRefreshAccess,operationsRequested,onExit}) {
   const [tab,setTab]=useState('home');
   const [busy,setBusy]=useState(false);
   const [success,setSuccess]=useState('');
@@ -25,7 +26,8 @@ export default function CitizenPage({session,operations,onSwitch,onRefreshAccess
   return <div className="citizen">
     <header className="citizen-header"><Brand/><span className="muted">{city.name} · Citizen portal</span><button className="text-button" disabled={busy} onClick={onExit}>Sign out ↗</button></header>
     <main className="citizen-main">
-      <WorkspaceSwitcher workspace="citizen" operations={operations} onSwitch={onSwitch} onRefresh={onRefreshAccess} disabled={busy}/>
+      <WorkspaceSwitcher workspace="citizen" operations={operations} access={access} onSwitch={onSwitch} onRefresh={onRefreshAccess} disabled={busy}/>
+      {access?.admin&&<button className="secondary" onClick={()=>onSwitch('judge-admin')}>Review judge requests</button>}
       <span className="eyebrow accent">YOUR CITY. YOUR VOICE.</span>
       <h1>Hello, {session.name}.</h1>
       <p className="muted">Help teams see what happened, where it happened, and the evidence.</p>
@@ -34,7 +36,7 @@ export default function CitizenPage({session,operations,onSwitch,onRefreshAccess
       </nav>
       <button className="secondary" disabled={busy} onClick={()=>setTab('account')}>{operations?'Operations access':'Apply for Operations Access'}</button>
       {success&&<div className="success submission-success" role="status"><strong>Report submitted</strong><p>Your incident and evidence were saved.</p><p className="report-reference">Reference: {success}</p><p>Status: {feed.reports.find(report=>report.id===success)?.status?.replaceAll('_',' ')||'Refreshing report status…'}</p><button disabled={busy||!feed.reports.some(report=>report.id===success)} onClick={()=>setSelected(feed.reports.find(report=>report.id===success))}>View report →</button></div>}
-      {tab==='around'?<CitizenAroundMe userId={session.userId}/>:tab==='account'?<OperationsApplication operations={operations} onRefresh={onRefreshAccess}/>:tab==='report'?<IncidentForm userId={session.userId} onSaved={saved} onBusy={setBusy}/>:tab==='alerts'?<section className="citizen-panel">
+      {tab==='around'?<CitizenAroundMe userId={session.userId}/>:tab==='account'?<><JudgeAccess access={access} onRefresh={onRefreshAccess} onOperations={()=>onSwitch('operations')}/><OperationsApplication operations={operations} onRefresh={onRefreshAccess}/></>:tab==='report'?<IncidentForm userId={session.userId} onSaved={saved} onBusy={setBusy}/>:tab==='alerts'?<section className="citizen-panel">
         <h2>City alerts</h2><p className="muted">Demonstration advisories, not live safety information.</p>
         {alerts.map(a=><article className="alert-card" key={a.title}><span className="status-pill">{a.severity} · Demo</span><h3>{a.title}</h3><p>{a.detail}</p></article>)}
       </section>:<section className="citizen-panel">

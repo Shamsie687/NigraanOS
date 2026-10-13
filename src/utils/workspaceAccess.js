@@ -1,5 +1,7 @@
 import {organizationTypes} from '../data/reportOptions.js';
 export function hasOperationsAccess(account) {
+  if(account?.access)return Boolean(account.profile&&account.access.allowed&&(account.access.permanent||
+    Date.parse(account.access.expires_at)>Date.parse(account.access.server_now)+(performance.now()-account.access.receivedAt)));
   return Boolean(account?.profile && account.operations?.verification_status === 'approved');
 }
 export function buildOperationsApplication({organizationName,organizationType,explanation=''}) {

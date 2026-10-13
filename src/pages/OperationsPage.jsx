@@ -19,10 +19,12 @@ import CommandSummary from '../components/CommandSummary';
 import CommandActivity from '../components/CommandActivity';
 import IncidentInspector from '../components/IncidentInspector';
 import {getSimulatorSession} from '../services/mcpSimulatorRuntime';
+import JudgeCountdown from '../components/JudgeCountdown';
 const NigraanAgent=lazy(()=>import('../components/NigraanAgent'));
 export default function OperationsPage({
   session,
   operations,
+  access,
   onSwitch,
   onRefreshAccess,
   onExit
@@ -60,14 +62,15 @@ export default function OperationsPage({
   <Sidebar active={active} onNavigate={navigate} onExit={onExit} />
   <div className="main-content">
     <TopBar session={session} realIncidents={active!=='Settings'}/>
-    <WorkspaceSwitcher workspace="operations" operations={operations} onSwitch={onSwitch} onRefresh={onRefreshAccess}/>
+    <WorkspaceSwitcher workspace="operations" operations={operations} access={access} onSwitch={onSwitch} onRefresh={onRefreshAccess}/>
+    <JudgeCountdown access={access}/>
     {active === 'Settings' ? <main className="dashboard">
       <h2>Workspace settings</h2>
       <section className="settings panel">
         <h3>Operations workspace</h3>
         <p>City: {city.name} · Timezone: {city.timezone}
         </p>
-        <p>Access: verified Operations account. Report access is enforced by database policies.</p>
+        <p>Access: {access?.permanent?'permanent approved Operations account':'temporary Operations grant'}. Report access is enforced by database policies.</p>
         <p>Authentication, incidents, workflow and map markers use Supabase. The geographic basemap uses OpenStreetMap. City Environment provides modeled Open-Meteo/CAMS context. Analytics uses authorized submitted incidents and published Citizen activity. Nigraan AI uses authorized incident facts.</p>
         <button className="secondary" onClick={onExit}>Sign out</button>
       </section>
