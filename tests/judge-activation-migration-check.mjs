@@ -1,0 +1,75 @@
+// Isolated synthetic PostgreSQL only. Optional --docker uses independent connections.
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {baseline} from '../scripts/review-judge-schema.mjs';
+import {createNativeJudgeDatabase} from './judge-native-postgres.mjs';
+const native=process.argv.includes('--docker');
+const db=native?await createNativeJudgeDatabase():await baseline();let checks=0;
+const sql=name=>readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8');
+const owner=()=>db.exec('reset role');
+const login=async id=>{await owner();await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+const value=async(q,args=[])=>(await db.query(q,args)).rows[0].value;
+const check=(n,ok)=>{assert.ok(ok,n);checks++;console.log('PASS: '+n);};
+const deny=async(n,f)=>{await assert.rejects(f);checks++;console.log('PASS: '+n);};
+try{
+ if(native){const fixture=await readFile(new URL('./transcription-migration-check.mjs',import.meta.url),'utf8');const a=fixture.indexOf('await db.exec(`')+15,b=fixture.indexOf('`);',a);await db.exec(fixture.slice(a,b).replaceAll('${citizen}','00000000-0000-4000-8000-000000000001').replaceAll('${other}','00000000-0000-4000-8000-000000000002'));for(const n of ['002_accounts_evidence_upgrade.sql','003_fix_incident_categories.sql','004_fix_evidence_constraints.sql','005_multi_workspace_access.sql','006_voice_transcription.sql','007_transcription_quota_tuning.sql','008_citizen_report_edits_updates.sql','009_nigraan_ai.sql','010_city_environment_context.sql','012_citizen_accountability.sql','013_citizen_around_me.sql'])await db.exec(await sql(n));}
+ await db.exec('alter table auth.users add column email_confirmed_at timestamptz;');
+ const admin=crypto.randomUUID(),judge=crypto.randomUUID(),other=crypto.randomUUID(),late=crypto.randomUUID(),revoke=crypto.randomUUID();
+ for(const id of [admin,judge,other,late,revoke])await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,clock_timestamp())',[id,'synthetic-'+id+'@example.invalid']);
+ await db.query("insert into operations_profiles(user_id,organization_name,organization_type,verification_status) values($1,'Synthetic organizer','other','approved')",[admin]);
+ for(const n of ['015_temporary_judge_access.sql','016_gmail_notification_retry_safety.sql','017_judge_rpc_service_role_hardening.sql'])await db.exec(await sql(n));
+ await db.query('insert into nigraan_judge_admins(user_id) values($1)',[admin]);
+ // One legacy grant must preserve its original hour through migration.
+ await login(other);const legacy=await value('select nigraan_request_judge_access() value');await login(admin);await db.query("select nigraan_decide_judge_access($1,'approved')",[legacy]);await owner();const before=await value('select expires_at value from nigraan_judge_requests where id=$1',[legacy]);
+ check('019 read-only preflight passes',(await db.query(await readFile(new URL('../docs/JUDGE_ACTIVATION_PREFLIGHT.sql',import.meta.url),'utf8'))).rows[0].verdict==='PASS');
+ await db.exec(await sql('019_judge_self_activation.sql'));
+ check('019 read-only postcheck passes',(await db.query(await readFile(new URL('../docs/JUDGE_ACTIVATION_POSTCHECK.sql',import.meta.url),'utf8'))).rows[0].verdict==='PASS');
+ check('legacy grant retains exact expiry',String(before)===String(await value('select expires_at value from nigraan_judge_requests where id=$1',[legacy])));
+ check('legacy start backfilled without resetting clock',await value('select started_at=approved_at value from nigraan_judge_requests where id=$1',[legacy]));
+ await login(judge);const request=await value('select nigraan_request_judge_access() value');
+ await deny('pending judge cannot activate',()=>db.query('select nigraan_activate_judge_access()'));
+ await deny('judge cannot approve themselves',()=>db.query("select nigraan_decide_judge_access($1,'approved')",[request]));
+ await login(admin);await db.query("select nigraan_decide_judge_access($1,'approved')",[request]);
+ await login(judge);let context=await value('select nigraan_operations_access_context() value');
+ check('approval grants no Operations capability',context.status==='approved'&&context.allowed===false&&context.started_at===null&&context.expires_at===null);
+ await owner();check('activation deadline exactly 48 hours',await value("select activation_expires_at-approved_at=interval '48 hours' value from nigraan_judge_requests where id=$1",[request]));
+ check('approval email snapshots activation deadline, not session expiry',await value("select expires_at is null and activation_expires_at is not null value from nigraan_judge_email_outbox where request_id=$1 and event='approved'",[request]));
+ await login(judge);await deny('unstarted approval cannot use AI',()=>db.query("select nigraan_ai_snapshot('briefing','all',24,null)"));
+ await deny('direct activation writes denied',()=>db.query('update nigraan_judge_requests set started_at=clock_timestamp()'));
+ if(native){const r=await Promise.all([db.concurrentQuery('select nigraan_activate_judge_access()'),db.concurrentQuery('select nigraan_activate_judge_access()')]);check('independent concurrent activations return same session',JSON.parse(r[0].trim().split('\n').pop()).expires_at===JSON.parse(r[1].trim().split('\n').pop()).expires_at);}else await db.query('select nigraan_activate_judge_access()');
+ context=await value('select nigraan_operations_access_context() value');check('first activation starts active capability',context.status==='active'&&context.allowed===true);
+ const initial=context.expires_at;await db.query('select nigraan_activate_judge_access()');context=await value('select nigraan_operations_access_context() value');
+ check('repeated activation cannot extend deadline',context.expires_at===initial);
+ await login(judge);check('relogin retains original deadline',(await value('select nigraan_activate_judge_access() value')).expires_at===initial);
+ await owner();check('session exactly sixty minutes',await value("select expires_at-started_at=interval '60 minutes' value from nigraan_judge_requests where id=$1",[request]));
+ check('activation audit recorded exactly once',await value("select count(*)::int value from nigraan_judge_audit where request_id=$1 and action='activated'",[request])===1);
+ check('activation queues no duplicate approval emails',await value('select count(*)::int value from nigraan_judge_email_outbox where request_id=$1',[request])===2);
+ await login(admin);await deny('duplicate approval cannot restart activation window',()=>db.query("select nigraan_decide_judge_access($1,'approved')",[request]));
+ await login(admin);await db.query("select nigraan_decide_judge_access($1,'revoked')",[legacy]);await login(other);await deny('revoked active session cannot reactivate',()=>db.query('select nigraan_activate_judge_access()'));check('active revocation denies access immediately',await value('select is_approved_operations() value')===false);
+ await login(late);const expired=await value('select nigraan_request_judge_access() value');await login(admin);await db.query("select nigraan_decide_judge_access($1,'approved')",[expired]);
+ await owner();await db.query("with t as(select clock_timestamp() at_time) update nigraan_judge_requests set approved_at=t.at_time-interval '48 hours',activation_expires_at=t.at_time from t where id=$1",[expired]);
+ await login(late);await deny('unstarted 48-hour approval cannot activate',()=>db.query('select nigraan_activate_judge_access()'));check('unstarted expiry derived without cron',(await value('select nigraan_operations_access_context() value')).status==='expired');
+ await login(revoke);const revoked=await value('select nigraan_request_judge_access() value');await login(admin);await db.query("select nigraan_decide_judge_access($1,'approved')",[revoked]);await db.query("select nigraan_decide_judge_access($1,'revoked')",[revoked]);await login(revoke);await deny('revoked unstarted approval cannot activate',()=>db.query('select nigraan_activate_judge_access()'));
+ const rejected=crypto.randomUUID();await owner();await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,clock_timestamp())',[rejected,'synthetic-rejected@example.invalid']);await login(rejected);const rejectedRequest=await value('select nigraan_request_judge_access() value');await login(admin);await db.query("select nigraan_decide_judge_access($1,'rejected')",[rejectedRequest]);await login(rejected);await deny('rejected request cannot activate',()=>db.query('select nigraan_activate_judge_access()'));
+ await owner();await db.query("with t as(select clock_timestamp()-interval '1 second' at_time) update nigraan_judge_requests set approved_at=t.at_time-interval '60 minutes',activation_expires_at=t.at_time-interval '60 minutes'+interval '48 hours',started_at=t.at_time-interval '60 minutes',expires_at=t.at_time from t where id=$1",[request]);
+ await login(judge);context=await value('select nigraan_activate_judge_access() value');check('expired activation retry cannot regain access',context.status==='expired'&&context.allowed===false);
+ await owner();const foreignIncident=crypto.randomUUID(),foreignEvidence=crypto.randomUUID(),foreignPath=admin+'/'+foreignIncident+'/'+foreignEvidence+'.jpg';
+ await db.query("insert into incidents(id,reporter_id,title,description,category,latitude,longitude,submission_state) values($1,$2,'Synthetic expiry report','Synthetic details','water',24,67,'submitted')",[foreignIncident,admin]);
+ await db.query("insert into evidence(id,incident_id,uploader_id,storage_path,media_type,mime_type,source,file_size) values($1,$2,$3,$4,'image','image/jpeg','camera',1)",[foreignEvidence,foreignIncident,admin,foreignPath]);
+ await login(judge);
+ check('same authenticated identity loses Operations helper at expiry',await value('select is_approved_operations() value')===false);
+ check('expired judge incident RLS hides other-citizen records',await value('select count(*)::int value from incidents where id=$1',[foreignIncident])===0);
+ check('expired judge evidence RLS hides other-citizen metadata',await value('select count(*)::int value from evidence where id=$1',[foreignEvidence])===0);
+ let changedRows=0;try{changedRows=(await db.query("update incidents set status='acknowledged' where id=$1 returning id",[foreignIncident])).rows.length;}catch(error){if(error.code!=='42501')throw error;}
+ check('expired direct workflow update is denied or changes no rows',changedRows===0);
+ await deny('expired workflow RPC denied',()=>db.query("select nigraan_update_incident_status($1,'reported','acknowledged')",[foreignIncident]));
+ await deny('expired public update RPC denied',()=>db.query("select nigraan_publish_public_update($1,'Synthetic update',$2)",[foreignIncident,crypto.randomUUID()]));
+ check('expired judge cannot mint other-citizen Storage URLs',await value("select nigraan_storage_access($1,'read') value",[foreignPath])===false);
+ await deny('expired judge cannot use administrator list RPC',()=>db.query('select nigraan_list_judge_requests()'));
+ await login(judge);check('same identity after relogin remains expired',await value('select is_approved_operations() value')===false);
+ await deny('expired session AI denied',()=>db.query("select nigraan_ai_snapshot('briefing','all',24,null)"));
+ check('Citizen profile remains accessible',await value('select count(*)::int value from profiles')===1);
+ await login(admin);check('permanent Operations and administrator unchanged',await value('select nigraan_is_permanent_operations() and nigraan_is_judge_admin() value'));
+ await db.exec('reset role; set role service_role;');await deny('service role cannot activate',()=>db.query('select nigraan_activate_judge_access()'));
+ console.log('TOTAL: '+checks+' PASS; '+(native?'native independent connections':'PGlite; native races not claimed')+'.');
+}catch(error){console.error('BLOCKED: synthetic activation suite failed: '+(error?.code||error?.name||'failure'));process.exitCode=1;}finally{await db.close();}

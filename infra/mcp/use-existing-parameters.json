@@ -1,0 +1,9 @@
+[
+  {"ParameterKey":"ReservedConcurrency","UsePreviousValue":true},
+  {"ParameterKey":"SupabaseUrl","UsePreviousValue":true},
+  {"ParameterKey":"SupabaseAnonKey","UsePreviousValue":true},
+  {"ParameterKey":"ConsentUrl","UsePreviousValue":true},
+  {"ParameterKey":"ClientId","UsePreviousValue":true},
+  {"ParameterKey":"ClientName","UsePreviousValue":true},
+  {"ParameterKey":"RedirectUri","UsePreviousValue":true}
+]

@@ -1,0 +1,62 @@
+{
+  "release": "9b242aa1fb4d073acce007bcd654a603af810eda",
+  "prepared": "2026-10-15",
+  "verificationScope": "Foundation 000 through 013; fresh judge suffix is documented and separately SQL-tested. Original 018 is not a fresh-project migration.",
+  "forbiddenProjects": [
+    "pmzbdrxedlthdqdpgigs",
+    "fnsshpaprqlshmmyavfh"
+  ],
+  "sequence": [
+    "supabase/hackathon/000_release_baseline.sql",
+    "supabase/migrations/002_accounts_evidence_upgrade.sql",
+    "supabase/migrations/003_fix_incident_categories.sql",
+    "supabase/migrations/004_fix_evidence_constraints.sql",
+    "supabase/migrations/005_multi_workspace_access.sql",
+    "supabase/migrations/006_voice_transcription.sql",
+    "supabase/migrations/007_transcription_quota_tuning.sql",
+    "supabase/migrations/008_citizen_report_edits_updates.sql",
+    "supabase/migrations/009_nigraan_ai.sql",
+    "supabase/migrations/010_city_environment_context.sql",
+    "supabase/migrations/011_security_harden_legacy_access.sql",
+    "supabase/migrations/012_citizen_accountability.sql",
+    "supabase/migrations/013_citizen_around_me.sql"
+  ],
+  "files": {
+    "docs/hackathon-supabase-bootstrap.md": "d181723fb02e331f72effdfdeb4d2c7667feb3f0aa02495d423f8f8364f04b8f",
+    "scripts/hackathon-bootstrap.mjs": "6459379ce093494c4d72453d94ef2610334ed1e26a5782812f76b2a855a97114",
+    "supabase/config.toml": "4d35be59e63d9d9d96e8b19154b75964addc0fc9595dd2cb36376f650a35fdeb",
+    "supabase/functions/city-context/handler.js": "9b63bc9c14f90bbb6bcfead18ea6129304032c58c796d3ff8ee6a52cdc0a6bb0",
+    "supabase/functions/city-context/index.ts": "f550a9986e2f293afdbff6e64226b4024a15e863d55edc762708bf65118a8a00",
+    "supabase/functions/city-context/providers.js": "c0c899c7c41265b056ee4874059a2a5777505ed9860f7755cbd756e8e0523345",
+    "supabase/functions/nigraan-ai/context.js": "40effb496179ab22ad57aab783a9a8fd24e4126c089fc3053ed88cc17116bbb9",
+    "supabase/functions/nigraan-ai/handler.js": "7eb116b3f36b203b7b6789da6a8750a99a55a72fbde1f172c940b4b06026477b",
+    "supabase/functions/nigraan-ai/index.ts": "f4f306864a414d8b37ae7ae46edc2a80e84fc51dddba56691b74980475239dec",
+    "supabase/functions/nigraan-ai/responseValidation.js": "974677b8284627b0bd33a49b4f182a6812682fddf7b6eaf818c5537ca664ec02",
+    "supabase/functions/transcribe-recording/handler.js": "cc4ef928cfa123b908050830223abfd5c09c47ac4ce178942583c1ce1b270671",
+    "supabase/functions/transcribe-recording/index.ts": "33507c7552ba8c1092deb321eb26f2c4e452f81a96600c3f2a7e9034e0d6967d",
+    "supabase/hackathon/000_release_baseline.sql": "edc70c4813a63414b1f44889af8ba50be5c3a2c8a3cba8e0ff02900f7fbf8ae3",
+    "supabase/migrations/002_accounts_evidence_upgrade.sql": "c00c6974e56ebf10ad482a809e38a1633855e4c1a5721b48798dd1c9e17f552e",
+    "supabase/migrations/003_fix_incident_categories.sql": "0d4e842762bded32c3b33d3773920098e6f7eceadbc6b1f19a59dc724efe1b0f",
+    "supabase/migrations/004_fix_evidence_constraints.sql": "2e8538bf55a4fa39164c8e43ccc2d3e59f7bfd25fbaa345196986a5f7b1c6cc0",
+    "supabase/migrations/005_multi_workspace_access.sql": "223daea5b63e541a6149d0cd2073daadc0bb46ed709a03c98cf91e0dcfcae925",
+    "supabase/migrations/006_voice_transcription.sql": "1480596cf99a533567e295febdabada941b21602520f1995dbb89caea014c991",
+    "supabase/migrations/007_transcription_quota_tuning.sql": "5c99f206dec6d51c44e2e473e359ec7c4b7d43cd9d8ae420292ee94ef297e34a",
+    "supabase/migrations/008_citizen_report_edits_updates.sql": "ad501e3bb4b1a70f6ca3261273e32c3bd28b38708847cefa4497c8d24af4b2a5",
+    "supabase/migrations/009_nigraan_ai.sql": "02b23aec6d0f2b426a235e9a42f8b408fdd897b594ac2ead77eef29672ab794e",
+    "supabase/migrations/010_city_environment_context.sql": "6a915ba4e3db56fbc03f524a4db6e25aa3179b895073a5d28fbe9035a0839c6d",
+    "supabase/migrations/011_security_harden_legacy_access.sql": "e6f7be75367ddd95a87b74bec71b64336ce2521db1a27ab2b55c9221f4fd7f94",
+    "supabase/migrations/012_citizen_accountability.sql": "dd824e24c93cd7e741fe5122108ab302bbaee43f015c9107f3d83fed7e3cdd3d",
+    "supabase/migrations/013_citizen_around_me.sql": "ba30f7291f964d98538c2df08f9102212dd8d36a832b18e3b5e14470c652f404",
+    "tests/hackathon-bootstrap.test.js": "08e6487c70e66a529b33890fc69f236e50cdf38b64641e2b9a509f021b809472"
+  },
+  "localVerification": {
+    "date": "2026-10-09",
+    "bootstrapTests": 13,
+    "rootTests": 270,
+    "failures": 0,
+    "diffCheck": "PASS",
+    "sqlExecuted": false,
+    "hostedAccess": false
+  },
+  "hashContent": "git-lf-crlf-to-lf-v1"
+}

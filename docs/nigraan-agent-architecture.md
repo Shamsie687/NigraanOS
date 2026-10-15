@@ -1,3 +1,5 @@
+> Historical Milestone 1 architecture. MCP and the simulator are now implemented; the owner reports hosted deployment. Current setup: [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md). The future-MCP section is historical. No official Alexa+ connection is claimed.
+
 # Nigraan Agent — Amazon Milestone 1
 
 Implemented after pre-Amazon baseline commit `193014f` (Initial NigraanOS release).

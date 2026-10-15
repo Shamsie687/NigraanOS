@@ -35,6 +35,7 @@ export function fixtures() {
   const state = {
     user: "owner",
     approved: true,
+    accessExpiresAt: Infinity,
     approvalError: false,
     authorizationCalls: 0,
     revokeAt: Infinity,
@@ -51,6 +52,7 @@ export function fixtures() {
   const factory: CallerFactory = (token) => {
     state.seenTokens.push(token);
     const caller: Caller = {
+      async accessDeadline() { return state.accessExpiresAt; },
       async authorize(expected, signal) {
         state.authorizationCalls++;
         if (state.delay) await new Promise((r) => setTimeout(r, state.delay));
@@ -62,7 +64,7 @@ export function fixtures() {
         )
           throw new SafeError("invalid_token", 401);
         if (state.approvalError) throw new SafeError("read_unavailable", 503);
-        if (!state.approved || state.authorizationCalls >= state.revokeAt)
+        if (!state.approved || state.authorizationCalls >= state.revokeAt || Date.now()>=state.accessExpiresAt)
           throw new SafeError("access_denied", 403);
         return state.user;
       },

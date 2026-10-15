@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();
 try{
   await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');

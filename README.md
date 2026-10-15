@@ -8,6 +8,14 @@ pinned: false
 license: mit
 ---
 
+## Amazon hackathon source release (15 October 2026)
+
+Current setup: [fresh-clone checklist](docs/SOURCE_RELEASE_SETUP.md). Judge testing: [Judge Guide](docs/HACKATHON_JUDGE_GUIDE.md). Reconciliation and proposed files: [source-release report](docs/SOURCE_RELEASE_RECONCILIATION.md), [manifest](docs/source-release-manifest.json).
+
+This is an Alexa+ web simulation using a real MCP backend, not an official Alexa+ integration. Migration 019 uses administrator approval followed by judge activation within 48 hours and one server-enforced 60-minute session. Existing permanent Operations access remains separate. Historical schema instructions below are retained for provenance; do not replay them on the live project.
+
+The new MIT LICENSE is an **unapproved local draft**, excluded from the proposed commit until the owner approves it. README license metadata is not proof of approval.
+
 ## Existing-schema upgrade
 
 The application now uses the existing `profiles`, `incidents`, and `evidence`
