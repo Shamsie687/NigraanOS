@@ -14,7 +14,13 @@ Current setup: [fresh-clone checklist](docs/SOURCE_RELEASE_SETUP.md). Judge test
 
 This is an Alexa+ web simulation using a real MCP backend, not an official Alexa+ integration. Migration 019 uses administrator approval followed by judge activation within 48 hours and one server-enforced 60-minute session. Existing permanent Operations access remains separate. Historical schema instructions below are retained for provenance; do not replay them on the live project.
 
-The new MIT LICENSE is an **unapproved local draft**, excluded from the proposed commit until the owner approves it. README license metadata is not proof of approval.
+## Creators and license
+
+NigraanOS was created by [Shamsie687](https://github.com/Shamsie687) and [ALI-ARSALANN](https://github.com/ALI-ARSALANN).
+
+Original NigraanOS project code is released under the [MIT License](LICENSE). Copyright (c) 2026 Shamsie687 and ALI-ARSALANN.
+
+Third-party dependencies, logos/assets and map data retain their respective licenses, attribution requirements and trademark rights; the project license does not relicense them. In particular, `react-leaflet` 4.2.1 and `@react-leaflet/core` 2.1.0 declare [Hippocratic-2.1](https://github.com/PaulLeCam/react-leaflet/blob/v4.2.1/LICENSE.md). OpenStreetMap data and tile-service terms remain separate. The historical source-release manifest records the earlier proposal, which excluded the then-unapproved license draft; this licensing change is reviewed separately.
 
 ## Existing-schema upgrade
 
