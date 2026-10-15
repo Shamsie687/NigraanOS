@@ -7,7 +7,7 @@ function Viewport({query}){const map=useMap();useEffect(()=>{map.setView(cellCen
 export default function AroundMeMap({cells,query,onSelect,onAreaChange}){
   const [tileError,setTileError]=useState(false);
   return <div className="around-me-map">{tileError&&<p role="status">Basemap tiles are unavailable. Released report groups remain available below.</p>}<MapContainer center={cellCenter(query)} zoom={12} maxZoom={13} doubleClickZoom={false} scrollWheelZoom={false} attributionControl={false}>
-    <AttributionControl position="bottomleft"/><TileLayer url={city.tileUrl} attribution={city.attribution} maxZoom={13} eventHandlers={{tileerror:()=>setTileError(true)}}/><Viewport query={query}/>
+    <AttributionControl position="bottomleft"/><TileLayer url={city.tileUrl} attribution={city.attribution} referrerPolicy={city.tileReferrerPolicy} maxZoom={13} eventHandlers={{tileerror:()=>setTileError(true)}}/><Viewport query={query}/>
     {cells.map(cell=><Rectangle key={cell.cellId} bounds={cell.generalizedBounds} pathOptions={{color:'#228be6',weight:2,fillOpacity:0.2}} eventHandlers={{click:()=>onSelect(cell.cellId)}}><Popup><strong>Generalized report area</strong><p>These cells do not identify individual report locations.</p><button onClick={()=>onSelect(cell.cellId)}>View report groups</button></Popup></Rectangle>)}
     <AreaEvents onAreaChange={onAreaChange}/>
   </MapContainer></div>;
