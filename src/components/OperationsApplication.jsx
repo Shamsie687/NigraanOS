@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import {organizationTypes} from '../data/reportOptions';
 import {applyOperations} from '../services/operations';
-export default function OperationsApplication({operations,onRefresh}) {
+export default function OperationsApplication({operations,access,onRefresh}) {
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const status=operations?.verification_status;
+  const temporaryJudge=Boolean(access?.status&&!access.permanent);
   async function submit(event) {
     event.preventDefault();
     const values=new FormData(event.currentTarget);
@@ -16,10 +17,10 @@ export default function OperationsApplication({operations,onRefresh}) {
     finally {setBusy(false);}
   }
   return <section className="citizen-panel">
-    <h2>Apply for Operations Access</h2>
-    <p>Use your existing account and email. Citizen reporting remains available throughout verification.</p>
-    {status && <p className="verification-note" role="status">{status==='pending'?'Pending Verification':status==='approved'?'Operations access approved':'Application rejected'} · {operations.organization_name}</p>}
-    {status==='pending' && <p>Your application is awaiting project-owner approval.</p>}
+    <h2>{temporaryJudge?'Permanent Operations application (separate from judge access)':'Apply for Operations Access'}</h2>
+    <p>{temporaryJudge?'This separate application is for ongoing Operations membership. It does not change your temporary judge access shown above.':'Use your existing account and email. Citizen reporting remains available throughout verification.'}</p>
+    {status && <p className="verification-note" role="status">{status==='pending'?(temporaryJudge?'Permanent application: Pending verification':'Pending Verification'):status==='approved'?'Permanent Operations access approved':'Permanent application rejected'} · {operations.organization_name}</p>}
+    {status==='pending' && <p>{temporaryJudge?'Only your permanent application is awaiting project-owner approval.':'Your application is awaiting project-owner approval.'}</p>}
     {status==='approved' && <p>Choose Operations in the workspace switcher to coordinate real incidents.</p>}
     {status==='rejected' && <p>You can update the organization details and submit a new application for review.</p>}
     {(!status || status==='rejected') && <form onSubmit={submit}><fieldset disabled={busy}>
