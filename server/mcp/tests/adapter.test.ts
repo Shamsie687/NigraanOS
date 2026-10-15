@@ -2,6 +2,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { supabaseFactory } from "../src/supabaseAdapter.js";
 import { row, upstream } from "./helpers.js";
+test('adapter uses database access deadline and fails closed after temporary expiry',async()=>{
+ const expiry=new Date(Date.now()+60000).toISOString();let allowed=true;
+ const caller=supabaseFactory('https://supabase.example.test','synthetic-key',async()=>
+   Response.json({allowed,permanent:false,status:"active",started_at:new Date(Date.parse(expiry)-3600000).toISOString(),expires_at:expiry}))('synthetic-token');
+ assert.equal(await caller.accessDeadline!(),Date.parse(expiry));allowed=false;
+ await assert.rejects(()=>caller.accessDeadline!());
+});
+test('MCP denies unstarted or malformed temporary capability even if allowed is supplied',async()=>{
+ for(const data of [
+  {allowed:true,permanent:false,status:'approved',expires_at:new Date(Date.now()+3600000).toISOString()},
+  {allowed:true,permanent:false,status:'active',started_at:new Date().toISOString(),expires_at:new Date(Date.now()+7200000).toISOString()},
+ ]){
+  const caller=supabaseFactory('https://supabase.example.test','synthetic-key',async()=>Response.json(data))('synthetic-token');
+  await assert.rejects(()=>caller.accessDeadline!());
+ }
+});
 test("actual Supabase client delegates user token and metadata projections with no write RPCs", async () => {
   const seen: { url: URL; headers: Headers; method: string; body?: string }[] =
     [];

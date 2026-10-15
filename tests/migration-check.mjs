@@ -1,9 +1,9 @@
 // Optional isolated PostgreSQL regression check; no remote credentials required.
-// npm install --prefix review/sql-check --no-save --package-lock=false @electric-sql/pglite
+// npm ci installs the pinned local SQL test runtime.
 // node tests/migration-check.mjs
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 
 const migration=await readFile(new URL('../supabase/migrations/003_fix_incident_categories.sql',import.meta.url),'utf8');
 const db=new PGlite();

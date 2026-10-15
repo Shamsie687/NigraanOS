@@ -178,7 +178,11 @@ test("expired transaction, code and grant are rejected; no refresh authorization
     upstream(),
   );
   const code = new URL(decision.redirect).searchParams.get("code")!;
-  clock += 120001;
+  // OAuth's library stamps expiry with wall time, while this store uses the
+  // injected clock. Test the stored deadline instead of assuming <1ms latency.
+  const storedCode = await store.getCode(code);
+  assert.ok(storedCode);
+  clock = storedCode.expiresAt.getTime();
   assert.equal(await store.getCode(code), undefined);
   const token = opaque(),
     g: Grant = {

@@ -1,0 +1,34 @@
+> **15 October 2026:** owner-reported rollout is complete. The production steps below are historical; do not replay 019. Fresh-project setup follows SOURCE_RELEASE_SETUP.md and deliberately treats original-only 018 separately. No hosted verification was repeated for the source release.
+
+# Judge-started Operations session — migration 019
+
+Local implementation prepared 14 October 2026. **Not applied/deployed.** Original project only: `pmzbdrxedlthdqdpgigs`; never M4E. Existing production 015–018, permanent memberships, administrator allowlist, secrets and old-report cleanup remain intact. Do not replay those migrations.
+
+## Behavior
+
+In Citizen → Operations access, a verified account requests temporary access. The protected administrator approves/rejects in the existing review UI. Email is a notification, not a capability. New approval sets `approved_at` and `activation_expires_at=approved_at+48 hours`; `started_at` and `expires_at` remain NULL. No Operations/AI/evidence/MCP capability exists before activation.
+
+The judge clicks **Start My 60-Minute Access**. An authenticated no-argument RPC locks only their request, checks approval/verification/current state and the post-lock DB clock, then sets `started_at` once and `expires_at=started_at+60 minutes`. It audits `activated` once, queues no second approval email, and returns current server context. Repeat clicks/relogin cannot extend the original deadline. At the 48-hour boundary an unstarted approval cannot activate. Expired, revoked and rejected grants never restart. Permanent Operations members retain their existing rights and cannot use this RPC to create extra grants.
+
+Stored request status remains approved; server-derived UI state is **Approved** before start, **Active** during the session, **Expired** after either deadline, or **Revoked/Rejected/Pending**. Admin can revoke both an unstarted approval and an active session. Citizen remains available.
+
+Legacy already-approved/revoked grants backfill `started_at=approved_at` and retain original `expires_at`, including expired grants. They are not converted to fresh activation windows. Historical outbox rows remain unchanged; new approval emails use the 48-hour activation deadline. Legacy queued approval messages retain their old text. One request/window per account and existing email retry guards remain unchanged.
+
+RLS, workflow/AI/city-context and Realtime authorization retain their existing policies/helpers; the helper now requires an actual session start. Evidence proxy rechecks active capability. MCP adapter requires active/start/deadline consistency, while existing OAuth/reference caps and per-tool rechecks bound delegation to the activated expiry. No judges become permanent members or administrators.
+
+## Safe staged rollout — explicit approval required
+
+1. Stop admitting/approving judges during the maintenance window. Keep notification webhook inactive (if already enabled later, pause it only with separate approval). Preserve current DB/config backups and old artifacts. Review aggregate legacy grants privately; migration preserves their deadlines. Run **JUDGE_ACTIVATION_PREFLIGHT.sql** manually in the confirmed original project; require PASS/0/[] and stop on any drift. No duplicate private export is required.
+2. Apply **only `supabase/migrations/019_judge_self_activation.sql`**, once. It is transactional and locks requests while backfilling old starts. It guards old function fingerprints and constraint prerequisites. Stop on errors; do not alter guards or reset any timestamps. Run **JUDGE_ACTIVATION_POSTCHECK.sql** and require PASS/0/[]. Existing administrator allowlist and original permanent approval predicate are not replaced.
+3. Redeploy **judge-notifications** (new approval wording) and **judge-evidence** (active-session validation), targeting the existing original project with their reviewed `--no-verify-jwt` flags. Do not rotate or change secrets. Keep webhook and judge approval paused until both handlers are compatible. Repeat deliberately unauthorized 401/403 and OPTIONS/CORS smoke checks without credentials or valid events.
+4. Update the existing AWS MCP stack `nigraan-mcp-staging` in ap-south-1 through a reviewed change set, preserving existing parameters, table/key/API identity and IAM. No new infrastructure permissions/secrets are needed. Do not admit judges until hosted MCP denies unstarted approvals and caps active delegation/references to `expires_at`.
+5. Rebuild/deploy frontend last to the existing Netlify site. Supply the existing public MCP origin/callback at build time (the local build previously lacked its MCP origin). No Gmail/webhook/service-role values may enter Vite configuration. Existing `/agent-callback` rewrite remains. Do not upload an unconfigured build or create a new site.
+6. After separate email/webhook-test approval, test with controlled accounts: Pending → approve/email → Approved with NULL session timestamps → no Operations/evidence/AI/MCP before Start → first Start → Active/countdown/full Operations → refresh/relogin/repeated Start retain deadline → revoke/expiry denies server capabilities. Use separate accounts for rejection and unstarted revocation; expired accounts cannot renew. Verify permanent Operations, Citizen reporting, private evidence, audits, Realtime and all five MCP tools. Observe an actual hosted 60-minute expiry before judge admission; do not edit production timestamps to force test results.
+
+## Testing limits and rollback
+
+Local SQL fixtures test migration, expiry, idempotency, audit and permissions. Native independent-connection activation race testing is prepared with `node tests/judge-activation-migration-check.mjs --docker`, but Docker Linux engine was unavailable. Do not claim that race test passed. Row locks implement serialization; concurrent activation/revocation and boundary behavior must still be verified on isolated native PostgreSQL/full Supabase before broad admission.
+
+Migration failure rolls back 019 only. Once committed, **do not restore old approval RPCs or convert unstarted approvals into immediately active grants**. Stop approvals/activation admission, revoke active sessions through the protected admin action if needed, and preserve all request/audit/identity anchors. Keep 019 database semantics while repairing or redeploying compatible artifacts. An old frontend may not understand Active state; restoring it is not a full judge-workflow rollback. Database rollback requires a separately reviewed data-preserving plan; no destructive down migration is provided. Already delivered evidence/workflow changes cannot be recalled.
+
+Gmail Testing-mode consent still expires after seven days; this change does not renew credentials. Notification failure/delay alters neither activation deadline nor session expiry. No email was sent by local tests.

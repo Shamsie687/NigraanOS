@@ -1,7 +1,7 @@
 // Isolated PostgreSQL fixture; no deployed database or credentials are used.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();
 const citizen='00000000-0000-4000-8000-000000000001';
 const other='00000000-0000-4000-8000-000000000002';

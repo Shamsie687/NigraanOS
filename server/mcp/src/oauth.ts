@@ -109,9 +109,11 @@ export class Delegation {
       revokeAuthorizationCode: async (code) =>
         store.consumeCode(code.authorizationCode),
       saveToken: async (token, c, u) => {
-        const expiry = Math.min(this.now() + 600000, Number(u.upstreamExpiry));
+        const caller=factory(String(u.upstream));
+        await caller.authorize(String(u.id));
+        const deadline=caller.accessDeadline?await caller.accessDeadline():Infinity;
+        const expiry = Math.min(this.now() + 600000, Number(u.upstreamExpiry),deadline);
         if (expiry <= this.now()) throw new SafeError("invalid_grant");
-        await factory(String(u.upstream)).authorize(String(u.id));
         const grant: Grant = {
           grantId: opaque(),
           userId: String(u.id),
@@ -178,8 +180,9 @@ export class Delegation {
     const tx = await this.store.getTransaction(body.transaction);
     if (!tx || tx.query.state !== body.state || !tx.userId)
       throw new SafeError("invalid_request");
-    const userId = await this.factory(upstream).authorize(tx.userId);
-    const exp = jwtExpiry(upstream);
+    const caller=this.factory(upstream);
+    const userId = await caller.authorize(tx.userId);
+    const exp = Math.min(jwtExpiry(upstream),caller.accessDeadline?await caller.accessDeadline():Infinity);
     if (exp <= this.now()) throw new SafeError("invalid_token", 401);
     // Revalidate user/state inside atomic consume boundary. Concurrent requests
     // may inspect, but only one can consume a transaction and issue a code.

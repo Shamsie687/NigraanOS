@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();let checks=0;
 const citizen='00000000-0000-4000-8000-000000000001',ops='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
 const sql=name=>readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8');

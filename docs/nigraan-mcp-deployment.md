@@ -1,6 +1,14 @@
+# Current release status — 15 October 2026
+
+The owner reports AWS MCP, Netlify, migrations 015–019 and both judge Edge Functions deployed. This task did not inspect or change hosted services. See [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md) for current reproduction and [AWS_JUDGE_ACTIVATION_DEPLOYMENT_CMD.md](AWS_JUDGE_ACTIVATION_DEPLOYMENT_CMD.md) for guarded original-stack updates.
+
+MCP uses protocol 2025-11-25, stateless JSON Streamable HTTP and five read tools. Delegated bearers are capped by the upstream Auth token, ten minutes and activated judge expiry. Approval opens a 48-hour activation window; activation starts one hour. No real Alexa+ connection is claimed. Never deploy MemoryStore/local.ts. Historical pending/deployment/approval-start statements below do not override this status.
+
+---
+
 # Nigraan MCP — local development and AWS staging architecture
 
-**NOT YET DEPLOYED TO AWS.** Milestone 2C adds DynamoDB/KMS adapters, a Lambda
+**Historical Milestone 2C notes: deployment statements below are historical.** Milestone 2C adds DynamoDB/KMS adapters, a Lambda
 entry point and isolated infrastructure as code after the pre-Amazon baseline.
 The owner confirms Milestone 2B's real local consent/delegated Supabase acceptance
 test passed. Local development remains unchanged. No AWS resources, credentials,

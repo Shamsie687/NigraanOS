@@ -15,6 +15,7 @@ export interface ActivityRow {
   published_at: string;
 }
 export interface Caller {
+  accessDeadline?(signal?: AbortSignal): Promise<number>;
   authorize(expectedId?: string, signal?: AbortSignal): Promise<string>;
   incidents(
     offset: number,
@@ -59,6 +60,17 @@ export function supabaseFactory(
       },
     });
     return {
+      async accessDeadline(signal) {
+        let query=client.rpc('nigraan_operations_access_context');
+        if(signal)query=query.abortSignal(signal);
+        const r=await query;
+        if(r.error||r.data?.allowed!==true)throw new SafeError('access_denied',403);
+        if(r.data.permanent===true)return Infinity;
+        const expiry=Date.parse(r.data.expires_at);
+        const started=Date.parse(r.data.started_at);
+        if(r.data.status!=='active'||!Number.isFinite(started)||expiry-started!==3600000||!Number.isFinite(expiry))throw new SafeError('access_denied',403);
+        return expiry;
+      },
       async authorize(expectedId, signal) {
         const { data, error } = await client.auth.getUser(accessToken);
         if (error || !data.user || (expectedId && data.user.id !== expectedId))

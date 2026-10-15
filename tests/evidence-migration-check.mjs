@@ -2,7 +2,7 @@
 // not assertions about the user's actual project. Optional runtime: see README.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PGlite} from '../review/sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 const sql=async name=>readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8');
 const db=new PGlite();
 const citizen='00000000-0000-4000-8000-000000000001';

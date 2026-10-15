@@ -12,3 +12,11 @@ verify_jwt = false
 [functions.city-context]
 # Auth getUser and Operations approval are checked inside the handler.
 verify_jwt = false
+
+[functions.judge-evidence]
+# Handler validates the caller through Auth getUser and database authorization.
+verify_jwt = false
+
+[functions.judge-notifications]
+# Handler requires the private x-judge-webhook-secret before claiming an outbox job.
+verify_jwt = false
