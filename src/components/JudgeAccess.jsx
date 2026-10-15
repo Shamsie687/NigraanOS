@@ -10,7 +10,7 @@ export default function JudgeAccess({access,onRefresh,onOperations}) {
   const remaining=remainingAccessMs(access);
   return <section className="citizen-panel" aria-label="Temporary Operations access">
     <h2>Temporary Operations access for judges</h2>
-    <p>Sign in with your verified account to request one Operations session. The organizer must approve it.</p>
+    {(!status||status==='pending')&&<p>Request one temporary Operations session with your verified account. Administrator approval is required before you can start it.</p>}
     {status&&<p role="status"><strong>{status[0].toUpperCase()+status.slice(1)}</strong></p>}
     {status==='pending'&&<p>Your request is awaiting administrator approval.</p>}
     {access?.verificationUnavailable&&<p role="alert">Access verification is unavailable. Operations stays closed until the server confirms access.</p>}

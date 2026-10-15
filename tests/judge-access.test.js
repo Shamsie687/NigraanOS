@@ -20,3 +20,9 @@ test('temporary grant does not require or forge permanent approval',()=>{
  assert.equal(hasOperationsAccess({profile:{},operations:{verification_status:'pending'},access:allowed}),true);
  assert.equal(hasOperationsAccess({profile:{},operations:{verification_status:'active'},access:{...allowed,allowed:false}}),false);
 });
+test('stale active frontend capability cannot retain Operations after its deadline',()=>{
+ const stale={...access,receivedAt:performance.now()-3600001};
+ assert.equal(remainingAccessMs(stale),0);
+ assert.equal(hasOperationsAccess({profile:{},operations:{verification_status:'pending'},access:stale}),false);
+ assert.equal(hasOperationsAccess({profile:{},access:{...stale,permanent:true,allowed:true}}),true);
+});
