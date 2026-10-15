@@ -20,7 +20,7 @@ NigraanOS was created by [Shamsie687](https://github.com/Shamsie687) and [ALI-AR
 
 Original NigraanOS project code is released under the [MIT License](LICENSE). Copyright (c) 2026 Shamsie687 and ALI-ARSALANN.
 
-Third-party dependencies, logos/assets and map data retain their respective licenses, attribution requirements and trademark rights; the project license does not relicense them. In particular, `react-leaflet` 4.2.1 and `@react-leaflet/core` 2.1.0 declare [Hippocratic-2.1](https://github.com/PaulLeCam/react-leaflet/blob/v4.2.1/LICENSE.md). OpenStreetMap data and tile-service terms remain separate. The historical source-release manifest records the earlier proposal, which excluded the then-unapproved license draft; this licensing change is reviewed separately.
+Third-party dependencies, logos/assets and map data retain their respective licenses, attribution requirements and trademark rights; the project license does not relicense them. In particular, `react-leaflet` 4.2.1 and `@react-leaflet/core` 2.1.0 declare [Hippocratic-2.1](https://github.com/PaulLeCam/react-leaflet/blob/v4.2.1/LICENSE.md). OpenStreetMap data and tile-service terms remain separate. Exact upstream notices for the copied Vite starter SVGs and the two React Leaflet packages are in [THIRD_PARTY_NOTICES](public/THIRD_PARTY_NOTICES.txt), copied unchanged into the frontend build and available at `/THIRD_PARTY_NOTICES.txt` on the deployed site. This does not make the dependency stack MIT-only. The historical source-release manifest records the earlier proposal, which excluded the then-unapproved license draft; this licensing change is reviewed separately.
 
 ## Existing-schema upgrade
 
