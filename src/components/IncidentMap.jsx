@@ -84,7 +84,7 @@ export default function IncidentMap({incidents,onSelect,city=defaultCity,large=f
     <div className="incident-map-frame">
       <MapContainer center={city.center} zoom={city.zoom} maxZoom={city.maxZoom} scrollWheelZoom={false} attributionControl={false} className="incident-leaflet-map" aria-label="Interactive incident map">
         <AttributionControl position="bottomleft"/>
-        <TileLayer key={tileRevision} url={city.tileUrl} attribution={city.attribution} maxZoom={city.maxZoom} eventHandlers={{tileerror:()=>setTileError(true)}}/>
+        <TileLayer key={tileRevision} url={city.tileUrl} attribution={city.attribution} referrerPolicy={city.tileReferrerPolicy} maxZoom={city.maxZoom} eventHandlers={{tileerror:()=>setTileError(true)}}/>
         <MapViewport action={action}/>
         {filtered.map(incident=><Marker key={incident.id} position={[incident.latitude,incident.longitude]} icon={incidentIcon(incident,externalFilters)} title={incident.title} riseOnHover eventHandlers={{add:({target})=>target.getElement()?.setAttribute('aria-label',incident.title+' · Incident marker')}}>
           <Popup><div className="incident-map-popup">
