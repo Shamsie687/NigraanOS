@@ -37,5 +37,16 @@ try{
  assert.match(ordinary,/Pending Verification/);assert.ok(!ordinary.includes('Submit application'));
  const {default:Admin}=await server.ssrLoadModule('/src/pages/JudgeAdminPage.jsx');
  const html=renderToString(React.createElement(Admin,{onExit(){}}));assert.match(html,/Judge access review/);assert.ok(!html.includes('apiKey'));
+ const newApproval=render({permanent:false,allowed:false,status:'approved',session_seconds:43200,activation_expires_at:'2026-11-22T00:00:00Z'});
+ assert.match(newApproval,/Start My 12-Hour Access/);assert.doesNotMatch(newApproval,/within 48 hours/);assert.match(newApproval,/Email is advisory/);
+ const {JudgeRequestReview}=await server.ssrLoadModule('/src/pages/JudgeAdminPage.jsx');
+ const row=status=>renderToString(React.createElement(JudgeRequestReview,{request:{id:'synthetic',registered_email:'synthetic@example.invalid',status,cycle:2},busy:false,onAction(){}}));
+ assert.match(row('expired'),/Renew expired access/);assert.doesNotMatch(row('active'),/Renew expired access/);assert.doesNotMatch(row('revoked'),/Renew expired access/);
+ assert.match(row('pending'),/browser local time/);assert.match(row('pending'),/45 days/);
+ const {loadOperationsAccess}=await server.ssrLoadModule('/src/services/judgeAccess.js');
+ const current={allowed:true,permanent:false,status:'active',session_seconds:43200,started_at:'2026-11-09T00:00:00Z',expires_at:'2026-11-09T12:00:00Z',server_now:'2026-11-09T00:00:00Z'};
+ const client=data=>({rpc:()=>({abortSignal:async()=>({data})})});
+ assert.equal((await loadOperationsAccess(client(current))).session_seconds,43200);
+ for(const patch of [{session_seconds:99999},{session_seconds:undefined},{expires_at:'2026-11-09T13:00:00Z'}])await assert.rejects(()=>loadOperationsAccess(client({...current,...patch})));
  console.log('Judge request/admin render checks: PASS (no browser or hosted calls)');
 }finally{await server.close();}

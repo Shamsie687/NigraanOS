@@ -6,8 +6,11 @@ export function emailMessage(job,{from,adminEmail='nigraanos.admin@gmail.com',si
   if(job.event==='requested')return {from,to:[adminEmail],subject:'NigraanOS: judge access request',text:
     `A verified account requested temporary Operations access.\nRegistered email: ${job.recipient}\nRequested: ${new Date(job.requested_at).toISOString()} (UTC)\nSign in to review: ${site}#/judge-admin\nOpening this link grants no permissions.`};
   if(job.event==='approved'&&!expiry){
+    const seconds=job.session_seconds??3600;
+    if(![3600,43200].includes(seconds))throw new Error('Invalid session duration');
+    const label=seconds===43200?'12-Hour':'60-Minute';
     const deadline=new Date(job.activation_expires_at).toISOString();
-    return {from,to:[job.recipient],subject:'NigraanOS: Operations access approved',text:`Your Operations request is approved.\nWebsite: ${site}\nSign in, open Operations access, and select Start My 60-Minute Access.\nActivate before ${deadline} (UTC), within 48 hours of approval. Your 60-minute timer starts only when activation succeeds, not at approval or email opening. Delivery delays do not extend the activation deadline. Citizen access remains available.`};
+    return {from,to:[job.recipient],subject:'NigraanOS: Operations access approved',text:`Your Operations request is approved. Approval cycle ${job.cycle??1}.\nWebsite: ${site}\nSign in, open Operations access, and select Start My ${label} Access.\nActivate before ${deadline} (UTC). Your ${label.toLowerCase()} timer starts only when activation succeeds, not at approval or email opening. Delivery delays do not extend the activation deadline. Citizen access remains available. Email is advisory: check your access status on the website even if delivery is delayed.`};
   }
   // Preserve queued legacy approval text for already-started grants.
   if(job.event==='approved')return {from,to:[job.recipient],subject:'NigraanOS: Operations access approved',text:

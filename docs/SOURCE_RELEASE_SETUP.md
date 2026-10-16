@@ -1,4 +1,4 @@
-# Fresh-clone setup — source release prepared 15 October 2026
+# Fresh-clone setup — source release updated 17 October 2026
 
 This checklist reproduces the checked-in implementation, not a database backup. The owner reports the original deployment is working; this preparation made no hosted changes. Nigraan Agent is a deterministic Alexa+ web simulation with real MCP reads, not an official Alexa+ integration or an unrestricted AI planner.
 
@@ -7,7 +7,7 @@ This checklist reproduces the checked-in implementation, not a database backup. 
 Use Windows CMD, Node 22.23+ (Node 24 for AWS Lambda), npm and Git. Clone the reviewed submission commit after it is published; do not assume today's main contains the proposed files yet.
 
 ```cmd
-git clone https://github.com/Shamsie687/NigraanOS.git
+git clone --config core.autocrlf=false https://github.com/Shamsie687/NigraanOS.git
 cd NigraanOS
 npm ci
 npm --prefix server/mcp ci
@@ -18,6 +18,8 @@ node tests/judge-access-render-check.mjs
 node tests/source-release-migration-check.mjs
 node tests/judge-access-migration-check.mjs
 node tests/judge-activation-migration-check.mjs
+node tests/judge-renewal-migration-check.mjs
+node scripts/verify-source-release.mjs --self-test
 npm --prefix server/mcp test
 npm --prefix server/mcp run typecheck
 npm --prefix server/mcp run validate:infra
@@ -26,6 +28,8 @@ git diff --check
 ```
 
 These use synthetic fixtures and do not need Supabase/AWS/Gmail credentials. PGlite is pinned in the root lockfile; no cleanup backup folder or ignored review runtime is required. Rollup's existing WASM override is preserved. The native SQL option requires a running Docker Linux engine and its pinned PostgreSQL image; the default tests do not establish native concurrency. No dedicated frontend typecheck is configured; frontend checks use tests, rendering and Vite.
+
+The clone command deliberately preserves Git's LF bytes on Windows. The existing licensing test parses LF-delimited upstream notices before checking their exact hashes; a default CRLF-converting checkout can fail its marker assertion despite unchanged license text. Use the documented clean LF clone; do not edit license notices or relax their hash checks. Source integrity itself accepts both LF and CRLF.
 
 ## 2. Private runtime configuration
 
@@ -43,7 +47,7 @@ For a genuinely empty Supabase project with managed Auth/Storage and standard ro
 
 1. Verify its new reference privately and inspect emptiness. Use `scripts/hackathon-bootstrap.mjs verify` and its documented exact-reference guards for the 000–013 foundation. Never use historical 001, bulk `db push`, reset, or automatic migration replay.
 2. Apply `supabase/hackathon/000_release_baseline.sql`, then migration files **002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013** one at a time, stopping on any failure.
-3. Apply **015 → 016 → 017 → 019** one at a time for fresh judge access. **Do not apply 014 or 018.** 014 belongs to separate privacy work. 018 hardens the exact original project's legacy timestamp helper and deliberately rejects a different schema. The fresh 000 baseline instead defines an invoker-only, pinned timestamp helper and matching update triggers; this is new fresh-project compatibility preparation, not deployed original SQL. Synthetic validation covers this fresh sequence. Managed Supabase Auth/Storage behavior still needs separate hosted acceptance.
+3. Apply **015 → 016 → 017 → 019 → 020** one at a time for fresh judge access. **Do not apply 014 or 018.** 014 belongs to separate privacy work. 018 hardens the exact original project's legacy timestamp helper and deliberately rejects a different schema. The fresh 000 baseline instead defines an invoker-only, pinned timestamp helper and matching update triggers; this is new fresh-project compatibility preparation, not deployed original SQL. Synthetic validation covers this fresh sequence. Managed Supabase Auth/Storage behavior still needs separate hosted acceptance.
 4. Migration 002 configures the private `incident-evidence` bucket and policies. Preserve RLS, caller-scoped RPCs and column grants. Never make evidence public. No real accounts, incidents or media are restored or seeded by the bootstrap.
 5. Establish a verified organizer Auth identity privately. Use the existing guarded `supabase/admin/approve_operations_for_testing.sql` only for the verified organizer's permanent application, then the UUID-placeholder `bootstrap_judge_admin.sql` and `verify_judge_admin.sql`. Do not infer authorization from the notification inbox. Never populate repository templates with private UUIDs.
 
@@ -69,8 +73,10 @@ Current simulator origins are the existing Netlify origin and exact local develo
 
 ## 6. Judge acceptance and release limitations
 
-Use [HACKATHON_JUDGE_GUIDE.md](HACKATHON_JUDGE_GUIDE.md). Approval opens a 48-hour activation window; one successful activation starts one server-clock hour. Email failure does not reset either deadline. Repeated activation cannot extend it. Current Operations views are broad operational access, not sanitized Judge Mode. Evidence/incident data must be team-authorized and safe for evaluation.
+Use [HACKATHON_JUDGE_GUIDE.md](HACKATHON_JUDGE_GUIDE.md). Approval defaults to a 48-hour activation window, with an administrator-selectable future deadline within 45 days. One successful activation starts twelve server-clock hours. Only the protected administrator may renew an expired cycle; active sessions cannot be extended and revoked/rejected cycles cannot be renewed. Existing started one-hour grants retain their original deadlines. Email failure does not reset either deadline. Repeated activation cannot extend it. Current Operations views are broad operational access, not sanitized Judge Mode. Evidence/incident data must be team-authorized and safe for evaluation.
 
-Independent reviewers need an agreed access arrangement through November 9–20. A one-hour account is not guaranteed repeat access. No official Alexa+ connection, hosted checksum, full server security certification or evaluation-period uptime is claimed. Record a truthful demo, including valid empty candidate/activity results. Do not reintroduce the deleted test reports.
+Independent reviewers need an agreed access arrangement through November 9–20. A twelve-hour account is not continuous access throughout judging: returning reviewers require administrator renewal after expiry. Maintain organizer coverage and confirm the access arrangement meets organizer requirements. No official Alexa+ connection, hosted checksum, full server security certification or evaluation-period uptime is claimed. Record a truthful demo, including valid empty candidate/activity results. Do not reintroduce the deleted test reports.
 
 Integrity manifests hash canonical Git LF text bytes (CRLF becomes LF; every other byte is preserved). Both LF exports and Windows CRLF checkouts must pass the same exact hash inventory. The source manifest excludes only its own circular self-hash; inspect its staged diff and allowlist separately.
+
+Current deployed production already includes 015–020. Never replay them. The fresh-project sequence deliberately omits original-project-only 018; 020 remains apply-once and must stop on predecessor drift. Optional native concurrency checks: `node tests/judge-renewal-migration-check.mjs --docker` (isolated Docker Linux PostgreSQL only). No application import or verification requires ignored recovery files.

@@ -1,3 +1,11 @@
+# Current synchronization note — 17 October 2026
+
+The MIT license and creator credits were approved and merged separately; LICENSE and third-party notices are not drafts. The historical 67-file inventory below retains its original proposal boundaries. The current 29-file judge-renewal synchronization uses [judge-renewal-release-manifest.json](judge-renewal-release-manifest.json), canonical LF hashes, and the same secret/path guards. Migration 020 and compatible MCP, notification worker and frontend are already deployed; source publication must not replay migrations/deployments. Immediate twelve-hour judge acceptance passed, with private-browser observations attributed to the user; genuine expiry and November Gmail readiness remain pending.
+
+Current reproduction: [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md). Preserve the `[skip netlify]` marker in pushed commits, PR title and final merge/squash message so source synchronization does not replace the verified manual frontend release. Private recovery packages, real account identities and incident records are never source inputs. All text below is historical evidence, including the former unapproved license and old open gates.
+
+---
+
 # Source-release reconciliation — 15 October 2026
 
 Review-only branch: `codex/hackathon-source-release`, based on fetched main `b8c7c4bed089138c38e4d2a285cf2d5ff0f0edba`. Both previous frontend PRs are included in that base. Creating the branch preserved the entire prior working diff and untracked files; the separate main worktree was not modified. Nothing is staged or committed.
@@ -49,7 +57,7 @@ Open gates: owner license approval; fresh hosted acceptance under separate appro
 4. A subsequent separately authorized push/PR targets main. Describe deployed-source reconciliation, the fresh baseline's explicit differences and validation limits. A merge can trigger Netlify automatically; review its env/build/rollback state first. No migration or backend deployment is required simply to publish already deployed source.
 5. Verify the public clone contains every manifest file and can run the documented local checks, without private folders. Commit a separately approved license before claiming the public repository is open source/submission-ready.
 
-## LF integrity correction � 16 October 2026
+## LF integrity correction — 16 October 2026
 
 The original proposal hashed raw Windows checkout bytes, so 47 staged Git blobs differed after Git CRLF normalization. Both verifiers now share byte-preserving CRLF-to-LF hashing, require exact hash inventories, and reject unsupported normalization. Regenerated manifests must match the staged blobs directly. Regression checks cover both checkout endings, corruption, missing hashes, BOMs, lone CR and non-UTF-8 bytes. The final validation uses an export of index blobs, replacing the earlier working-file-overlay export as portability evidence. Release scope remains 67 files; LICENSE remains excluded. No commit or deployment is authorized by this correction.
 

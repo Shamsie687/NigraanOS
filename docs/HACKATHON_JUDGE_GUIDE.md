@@ -1,5 +1,7 @@
 # NigraanOS — Amazon Developer Hackathon Judge Guide
 
+> Current deployed release: migration 020 and compatible frontend/MCP/notification worker are live. New activations last twelve hours. Started legacy one-hour grants retain their original expiry. Access requires organizer approval; confirm reviewer coverage throughout judging.
+
 **Hosted demo:** [https://nigraanos.netlify.app/](https://nigraanos.netlify.app/)
 
 NigraanOS connects Citizen reporting with authorized Operations review in Karachi, Pakistan. It brings reports about traffic, flooding, waste, air quality, water, power and road damage into a shared workflow so operators can inspect recorded facts, locate reports and decide what needs human attention. It supports review and coordination; it does not guarantee emergency response or independently verify a report.
@@ -16,12 +18,12 @@ NigraanOS connects Citizen reporting with authorized Operations review in Karach
 
 **Alexa+ disclosure:** Nigraan Agent is a simulated Alexa+ web interface. It is **not an official Alexa+ integration, certified Alexa+ skill, or voice-assistant connection**. The simulation uses a real, read-only AWS-hosted MCP backend, rather than hardcoded tool answers. Text routing uses deterministic supported intents; it is not an unrestricted conversational AI.
 
-The team confirms that the frontend is working on Netlify and the MCP endpoint is deployed in **ap-south-1**, under CloudFormation stack **`nigraan-mcp-staging`**. All five tools passed local tests. Hosted Operations login, MCP authorization and remote investigation were manually verified by the team. These acceptance statements do not imply that every optional feature or device has been tested.
+The team confirms that the frontend is working on Netlify and the MCP endpoint is deployed in **ap-south-1**, under CloudFormation stack **`nigraan-mcp-staging`**. All five tools passed local and earlier hosted acceptance. Hosted Operations login, MCP authorization and both empty and populated investigations were manually verified by the team. The renewed twelve-hour judge cycle passed immediate acceptance: server timestamps were checked in the administrator UI; refresh/relogin persistence, one remote get_city_status read and Citizen access were user-observed in the private judge browser. These acceptance statements do not imply that every optional feature or device has been tested.
 
 ## Judge access and evaluation
 
 1. Open the hosted demo and sign up/sign in using existing email authentication. In Citizen → **Operations access**, select **Request Temporary Operations Access**. The organizer must review it; signup, email addresses and permanent-application pending status grant no temporary privileges.
-2. After approval, sign in and use **Check access status**. Select **Start My 60-Minute Access** within 48 hours. Approval and email opening start no session timer. Successful activation starts one server-authoritative hour; refresh/relogin cannot restart it and there are no self-service renewals. Open Operations and inspect Dashboard, Live Map, Incidents and modeled conditions. Permanent applications remain separate. Expiry removes Operations and retains Citizen. Previously downloaded information cannot be recalled.
+2. After approval, sign in and use **Check access status**. Select **Start My 12-Hour Access** before the displayed activation deadline (48 hours by default, or a bounded administrator-selected deadline). Approval and email opening start no session timer. Successful activation starts one server-authoritative twelve-hour session; refresh/relogin cannot restart it and there are no self-service renewals; contact the organizer for administrator-only renewal after expiry. Open Operations and inspect Dashboard, Live Map, Incidents and modeled conditions. Permanent applications remain separate. Expiry removes Operations and retains Citizen. Previously downloaded information cannot be recalled.
 3. Open **Nigraan Agent**. Select **Connect read access**, review the client and five disclosed read capabilities, then approve consent. Confirm the connection shows **connected**. Approval grants bounded read access, not permission to alter incidents.
 4. Ask **“Give me a city status briefing.”** Inspect the recorded counts and any returned references. Ask **“Which unresolved incidents should I review?”** for the review-candidate list.
 5. If a current reference is returned, ask **“Tell me more about the first one.”** and **“Show activity for I1”**, replacing I1 with a reference actually returned. If no reference exists, skip detail follow-ups; do not invent one.
@@ -47,7 +49,7 @@ The backend uses protocol **2025-11-25** and Streamable HTTP. Navigation remains
 
 The investigation reads city status and the review-candidate list, inspects **at most the first two returned candidates**, optionally collects their published activity, and reads modeled conditions. It makes at most seven sequential tool calls. The briefing separates recorded facts, reasons for review, modeled context, coverage and human next steps. Reads are collected over time rather than forming one atomic database snapshot; partial failures and changed observations are disclosed.
 
-**The manually verified urgent investigation returned zero review candidates.** An empty result is valid. It does not establish that Karachi is safe or that no incidents exist. Judges should assess the honest empty state and available context; a populated urgent scenario is not promised.
+Earlier hosted tests covered both a valid zero-candidate result and a populated investigation. Results depend on the current authorized records; do not promise urgent incidents or fabricate candidates. An empty result does not establish that Karachi is safe or that no incidents exist.
 
 If a run is still active, **Cancel investigation** stops delivery of late results. References expire after at most five minutes (and no later than delegation expiry) and can become stale when context changes. Use a fresh investigation when prompted. Open Incidents leads to the existing authorized workspace for human review rather than exposing database identifiers.
 
@@ -70,9 +72,11 @@ If a run is still active, **Cancel investigation** stops delivery of late result
 | 1:20–2:05 | Request a city briefing, then “What needs attention right now and why?” Explain coverage and context. If empty: “Our verified run returned zero review candidates. We show that result honestly; it is not a claim that the city is safe.” Follow a reference only if one is actually returned. |
 | 2:05–2:35 | Demonstrate refusal of a resolve request, then disconnect. “The Agent reads and helps review; it does not take operational action. Access can be denied or revoked, and references expire.” |
 
+Email is advisory: use **Check access status** on the website if notification delivery is missing or delayed. MCP connections remain short-lived and may need fresh consent during a longer Operations session.
+
 ## Submission readiness items
 
-- Confirm a reviewer-access arrangement throughout judging. One 60-minute window per account does not guarantee repeat access. Do not publish credentials or silently widen permissions.
+- Confirm a reviewer-access arrangement throughout judging. Each twelve-hour session requires activation. Repeat access after expiry requires administrator renewal; organizer availability is necessary. Do not publish credentials or silently widen permissions.
 - Judging runs November 9–20, 2026. Maintain runnable source and agreed demo access throughout it. Gmail External Testing tokens expire after seven days; an October renewal does not cover November. See GMAIL_NOTIFICATION_SETUP.md. Availability is not guaranteed by this guide.
-- Keep the walkthrough compatible with the verified zero-candidate result. Record only non-sensitive, authorized screens and exclude credentials, authorization URLs/codes and private report content.
-- Team-reported hosted acceptance supports this guide; it was not independently repeated during document preparation. Historical engineering documents describe earlier deployment stages and should not override the current verified facts above.
+- Keep the walkthrough compatible with both empty and populated authorized results. Record only non-sensitive, authorized screens and exclude credentials, authorization URLs/codes and private report content.
+- Hosted acceptance evidence distinguishes administrator-UI observations from judge-browser results reported by the user. Genuine twelve-hour expiry remains pending until observed; no token/request trace from the private judge browser is claimed. Historical engineering documents describe earlier deployment stages and should not override the current verified facts above.

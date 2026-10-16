@@ -16,7 +16,9 @@ export async function createNativeJudgeDatabase(){
    async query(text,params=[]){
      if(text.startsWith("select set_config('request.jwt.claim.sub'")){actor=params[0];return {rows:[]};}
      const rendered=text.replace(/\$(\d+)/g,(_,i)=>params[Number(i)-1]===null?'null':quote(params[Number(i)-1])).replace(/;\s*$/,'');
-     if(/^\s*select/i.test(rendered))return {rows:JSON.parse(execute("select coalesce(json_agg(x),'[]'::json) from ("+rendered+') x;'))};
+     const statement=rendered.replace(/^\s*(?:--[^\n]*(?:\n|$)\s*)*/, '');
+     const keywords=statement.replace(/'(?:''|[^'])*'/g,"''").replace(/--[^\n]*/g,'');
+     if(/^\s*(select|with)\b/i.test(statement)&&!/^\s*with\b[\s\S]*\b(update|insert|delete)\b/i.test(keywords))return {rows:JSON.parse(execute("select coalesce(json_agg(x),'[]'::json) from ("+rendered+') x;'))};
      execute(rendered+';');return {rows:[]};
    },
    concurrentQuery(text,params=[]){

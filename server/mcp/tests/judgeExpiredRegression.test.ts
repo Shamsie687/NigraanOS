@@ -4,6 +4,7 @@ import {fixtures,harness,grant,rpc,call} from './helpers.js';
 import {runTool} from '../src/tools.js';
 import {names} from '../src/schemas.js';
 import {MemoryStore,type Grant} from '../src/state.js';
+import {Delegation} from '../src/oauth.js';
 import {supabaseFactory} from '../src/supabaseAdapter.js';
 const capability=(expiresAt:number):Grant=>({userId:'owner',clientId:'synthetic-client',grantId:'synthetic-grant',upstream:'synthetic-token',expiresAt,resource:'http://localhost/mcp',scope:'nigraan:read'});
 
@@ -39,4 +40,21 @@ test('actual adapter rejects expired database access despite a valid Auth identi
  const caller=supabaseFactory('https://test.supabase.co','sb_publishable_test',async input=>Response.json(String(input).includes('/auth/v1/user')?{id:'owner',aud:'authenticated',role:'authenticated'}:String(input).includes('nigraan_operations_access_context')?{allowed:false,permanent:false,status:'expired'}:false))('synthetic-still-valid-auth-token');
  await assert.rejects(()=>caller.authorize('owner'),e=>(e as {code:string}).code==='access_denied');
  await assert.rejects(()=>caller.accessDeadline!(),e=>(e as {code:string}).code==='access_denied');
+});
+
+
+test('renewed database access cannot revive expired MCP bearer or old reference context',async()=>{
+ let clock=1800000000000;const store=new MemoryStore(()=>clock),f=fixtures();
+ const config={origin:'https://mcp.example.test',clientId:'synthetic-client',clientName:'Synthetic',consentUrl:'https://app.example.test',redirectUri:'https://app.example.test/callback'};
+ const broker=new Delegation(config,store,f.factory,()=>clock);
+ const old={...capability(clock+1000),resource:config.origin+'/mcp'};
+ try{
+  await store.putGrant('old-token',old);
+  await store.putReference('A'.repeat(43),{userId:old.userId,clientId:old.clientId,grantId:old.grantId,expiresAt:old.expiresAt,mapping:{I1:'synthetic-incident'}});
+  clock=old.expiresAt;f.state.accessExpiresAt=clock+43200000;f.state.approved=true;
+  await assert.rejects(()=>broker.resolve('old-token'),e=>(e as {code:string}).code==='invalid_token');
+  const fresh={...old,grantId:'new-cycle-grant',expiresAt:clock+600000};await store.putGrant('fresh-token',fresh);
+  assert.equal((await broker.resolve('fresh-token')).grantId,'new-cycle-grant');
+  await assert.rejects(()=>store.resolveReference('A'.repeat(43),'I1',fresh));
+ }finally{store.close();}
 });
