@@ -1,8 +1,10 @@
-# Current release status — 15 October 2026
+# Current release status — 17 October 2026
 
-The owner reports AWS MCP, Netlify, migrations 015–019 and both judge Edge Functions deployed. This task did not inspect or change hosted services. See [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md) for current reproduction and [AWS_JUDGE_ACTIVATION_DEPLOYMENT_CMD.md](AWS_JUDGE_ACTIVATION_DEPLOYMENT_CMD.md) for guarded original-stack updates.
+AWS MCP, both judge Edge Functions, Netlify and migrations 015–020 are deployed. The updated Lambda artifact and frontend static assets were hash-verified during the approved rollout. See [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md) and [JUDGE_RENEWAL_ROLLOUT.md](JUDGE_RENEWAL_ROLLOUT.md). No deployment is performed by cloning or merging source.
 
-MCP uses protocol 2025-11-25, stateless JSON Streamable HTTP and five read tools. Delegated bearers are capped by the upstream Auth token, ten minutes and activated judge expiry. Approval opens a 48-hour activation window; activation starts one hour. No real Alexa+ connection is claimed. Never deploy MemoryStore/local.ts. Historical pending/deployment/approval-start statements below do not override this status.
+MCP uses protocol 2025-11-25, Streamable HTTP and five read tools. Delegated bearers remain bounded by the upstream credential, ten minutes and actual activated Operations expiry. The adapter accepts reviewed legacy 3,600-second and new 43,200-second sessions only; it rechecks authorization on reads. Renewal cannot revive expired bearers or references; reconnect with fresh consent when required. New Operations sessions last twelve hours, not twelve hours per MCP connection. No official Alexa+ connection is claimed. Never deploy MemoryStore/local.ts.
+
+Historical sections below describe earlier milestones; they are not the current access policy or instructions to replay deployed migrations.
 
 ---
 

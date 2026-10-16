@@ -68,7 +68,8 @@ export function supabaseFactory(
         if(r.data.permanent===true)return Infinity;
         const expiry=Date.parse(r.data.expires_at);
         const started=Date.parse(r.data.started_at);
-        if(r.data.status!=='active'||!Number.isFinite(started)||expiry-started!==3600000||!Number.isFinite(expiry))throw new SafeError('access_denied',403);
+        const seconds=r.data.session_seconds??3600;
+        if(![3600,43200].includes(seconds)||r.data.status!=='active'||!Number.isFinite(started)||expiry-started!==seconds*1000||!Number.isFinite(expiry))throw new SafeError('access_denied',403);
         return expiry;
       },
       async authorize(expectedId, signal) {

@@ -28,3 +28,11 @@ test('judge expiry between consent and token exchange prevents delegation',async
  h.state.accessExpiresAt=Date.now()-1;
  await assert.rejects(()=>h.delegation.exchange(flow.consume(decision.redirect)));
 });
+
+
+test('twelve-hour Operations session still mints at most ten-minute MCP delegation',async t=>{
+ const h=await harness(t);h.state.accessExpiresAt=Date.now()+43200000;
+ const before=Date.now(),g=await grant(h),stored=await h.store.getGrant(g.access);
+ assert.ok(stored&&stored.expiresAt<=Date.now()+600000&&stored.expiresAt>before);
+ assert.ok(stored!.expiresAt<h.state.accessExpiresAt);
+});

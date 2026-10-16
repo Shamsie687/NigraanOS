@@ -26,3 +26,11 @@ test('stale active frontend capability cannot retain Operations after its deadli
  assert.equal(hasOperationsAccess({profile:{},operations:{verification_status:'pending'},access:stale}),false);
  assert.equal(hasOperationsAccess({profile:{},access:{...stale,permanent:true,allowed:true}}),true);
 });
+
+
+test('twelve-hour countdown expires from its original server activation despite stale sessions',()=>{
+ const twelve={...access,session_seconds:43200,expires_at:'2026-10-12T12:00:00Z'};
+ assert.equal(remainingAccessMs(twelve,100),43200000);
+ assert.equal(remainingAccessMs(twelve,43200100),0);
+ assert.equal(hasOperationsAccess({profile:{},access:{...twelve,receivedAt:performance.now()-43200001}}),false);
+});

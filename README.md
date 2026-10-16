@@ -8,11 +8,11 @@ pinned: false
 license: mit
 ---
 
-## Amazon hackathon source release (15 October 2026)
+## Amazon hackathon source release (17 October 2026)
 
-Current setup: [fresh-clone checklist](docs/SOURCE_RELEASE_SETUP.md). Judge testing: [Judge Guide](docs/HACKATHON_JUDGE_GUIDE.md). Reconciliation and proposed files: [source-release report](docs/SOURCE_RELEASE_RECONCILIATION.md), [manifest](docs/source-release-manifest.json).
+Current behavior and deployment boundaries: [judge renewal rollout](docs/JUDGE_RENEWAL_ROLLOUT.md). Exact current release inventory: [renewal manifest](docs/judge-renewal-release-manifest.json). Current setup: [fresh-clone checklist](docs/SOURCE_RELEASE_SETUP.md). Judge testing: [Judge Guide](docs/HACKATHON_JUDGE_GUIDE.md). Reconciliation and proposed files: [source-release report](docs/SOURCE_RELEASE_RECONCILIATION.md), [manifest](docs/source-release-manifest.json).
 
-This is an Alexa+ web simulation using a real MCP backend, not an official Alexa+ integration. Migration 019 uses administrator approval followed by judge activation within 48 hours and one server-enforced 60-minute session. Existing permanent Operations access remains separate. Historical schema instructions below are retained for provenance; do not replay them on the live project.
+This is an Alexa+ web simulation using a real MCP backend, not an official Alexa+ integration. Migration 020 supports administrator approval, judge self-activation and server-enforced 12-hour sessions. Approval defaults to 48 hours to activate; an administrator may choose a future activation deadline within 45 days. Only expired cycles can be renewed by the protected administrator; active sessions cannot be extended and previous cycle history is retained. Started legacy one-hour grants keep their original deadlines. Email is advisory; judges can check status on the website. Existing permanent Operations access remains separate. Historical schema instructions below are retained for provenance; do not replay them on the live project.
 
 ## Creators and license
 

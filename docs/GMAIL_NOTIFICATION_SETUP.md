@@ -2,7 +2,7 @@
 
 # Gmail notification setup
 
-**14 October:** the deployed worker needs a separately approved update after migration 019. New approval messages explain Start My 60-Minute Access and the 48-hour activation deadline; approval/email opening starts no session timer. Existing secrets and retry controls remain unchanged. See JUDGE_ACTIVATION_ROLLOUT.md.
+> **17 October 2026:** the compatible Gmail worker and migration 020 are deployed. New approval messages describe judge-started 12-hour sessions, approval cycles and the bounded activation deadline; started legacy one-hour grants remain unchanged. One controlled cycle-2 approval delivery was observed, but November authorization is not established. Google OAuth was last confirmed External Testing; publishing/reauthorization/secret updates require separate approval. Historical setup instructions below are not permission to replay migrations or send email.
 
 Only the organizer authorizes Gmail. Judges sign in through unchanged Supabase Auth. No custom domain, Gmail password, app password or additional Google identity scope is required. Gmail consumer sending limits are roughly 500 emails/day, shared with normal mailbox use; anti-abuse restrictions and bounces can limit sending earlier. Inbox delivery is not guaranteed.
 

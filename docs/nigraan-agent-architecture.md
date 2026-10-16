@@ -1,3 +1,13 @@
+# Current deployed architecture — 17 October 2026
+
+The browser's Nigraan Agent is a deterministic Alexa+ web simulation, not an official Alexa+ integration. Its current path is browser → Streamable HTTP SDK → AWS API Gateway/Lambda MCP → caller-scoped Supabase reads/RPCs and modeled city context. OAuth authorization-code/PKCE consent uses the existing broker, DynamoDB delegated state and KMS protection; no provider credential or service-role key belongs in browser code.
+
+Database Operations authorization distinguishes permanent membership from temporary activated grants. Migration 020 provides twelve-hour judge sessions, bounded approval deadlines and protected administrator renewal only after expiry, with previous cycles retained. MCP delegations remain at most ten minutes and cannot outlive the upstream credential or actual session expiry; renewed cycles do not revive expired tokens/references. Evidence uses its separate authenticated proxy. Approval, workflow writes and notifications are outside the MCP read tools.
+
+Current setup: [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md); reviewer flow: [HACKATHON_JUDGE_GUIDE.md](HACKATHON_JUDGE_GUIDE.md). The following Milestone 1 description is historical; its local safe-tool flow/future-MCP passages do not describe the deployed transport.
+
+---
+
 > Historical Milestone 1 architecture. MCP and the simulator are now implemented; the owner reports hosted deployment. Current setup: [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md). The future-MCP section is historical. No official Alexa+ connection is claimed.
 
 # Nigraan Agent — Amazon Milestone 1

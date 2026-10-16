@@ -1,3 +1,11 @@
+# Current production completion — 17 October 2026
+
+Migrations 015–020, administrator bootstrap, compatible AWS MCP, judge Edge Functions and the twelve-hour frontend are deployed. The 020 catalog postcheck passed with zero mismatches; all six preservation counts/fingerprints matched. The single controlled renewal retained prior history; user-observed refresh/relogin, one authorized MCP read and Citizen access passed. Genuine twelve-hour expiry remains pending until independently observed; do not claim elapsed-time acceptance from synthetic tests.
+
+Do not replay the original-project SQL below or run bulk db push. Current behavior and forward-repair boundaries: [JUDGE_RENEWAL_ROLLOUT.md](JUDGE_RENEWAL_ROLLOUT.md). Fresh disposable setup is separate: [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md). OAuth publishing, credentials, database changes, backend deployments and Netlify releases always require separate approval. Source synchronization must not trigger a new build: retain `[skip netlify]` in branch commits, PR title and eventual merge/squash message.
+
+## Historical original deployment runbook — not current activation instructions
+
 > **15 October 2026 source-release update:** The owner reports migrations 015–019, administrator bootstrap, Gmail notifications, Edge Functions, AWS MCP and Netlify live. Do not replay the original rollout below. This is historical original-project documentation, not a fresh bootstrap. See [SOURCE_RELEASE_SETUP.md](SOURCE_RELEASE_SETUP.md). Require separate approval for any hosted change.
 
 # Judge access production activation

@@ -71,3 +71,14 @@ test('approved but unstarted judge cannot obtain evidence',async()=>{
  const handler=createJudgeEvidenceHandler({allowedOrigins:()=> 'http://localhost',userClient:()=>client,download:async()=>{downloaded=true;}});
  assert.equal((await handler(request())).status,403);assert.equal(downloaded,false);
 });
+
+
+test('twelve-hour approval and renewal emails use their snapshot deadline, with no forced 48-hour claim',()=>{
+ const m=emailMessage({...job,event:'approved',cycle:2,session_seconds:43200,expires_at:null,activation_expires_at:'2026-11-22T00:00:00Z'},settings);
+ assert.match(m.text,/Start My 12-Hour Access/);
+ assert.match(m.text,/2026-11-22T00:00:00.000Z/);
+ assert.match(m.text,/only when activation succeeds/);
+ assert.match(m.text,/Email is advisory/);
+ assert.doesNotMatch(m.text,/within 48 hours|60-minute/);
+ assert.throws(()=>emailMessage({...job,event:'approved',session_seconds:99999,expires_at:null,activation_expires_at:'2026-11-22T00:00:00Z'},settings));
+});

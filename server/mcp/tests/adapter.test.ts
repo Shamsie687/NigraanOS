@@ -136,3 +136,12 @@ test("actual Supabase adapter denies changed identity and unapproved capability"
     (e) => (e as { code: string }).code === "access_denied",
   );
 });
+
+
+test('MCP accepts exact twelve-hour database sessions but rejects longer or unversioned grants',async()=>{
+ const expires_at=new Date(Date.now()+43200000).toISOString(),started_at=new Date(Date.parse(expires_at)-43200000).toISOString();
+ for(const seconds of [43200,3600,undefined,99999]){
+  const caller=supabaseFactory('https://supabase.example.test','synthetic-key',async()=>Response.json({allowed:true,permanent:false,status:'active',session_seconds:seconds,started_at,expires_at}))('synthetic-token');
+  if(seconds===43200)assert.equal(await caller.accessDeadline!(),Date.parse(expires_at));else await assert.rejects(()=>caller.accessDeadline!());
+ }
+});
